@@ -25,7 +25,7 @@ async function bootstrap(client: Client): Promise<void> {
   `);
 }
 
-async function up(client: Client): Promise<void> {
+async function up(client: Client, target?: string): Promise<void> {
   const files = fs
     .readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith('.up.sql'))
@@ -36,7 +36,19 @@ async function up(client: Client): Promise<void> {
   );
   const applied = new Set(rows.map((r) => r.name));
 
-  const pending = files.filter((f) => !applied.has(f.replace('.up.sql', '')));
+  let pending = files.filter((f) => !applied.has(f.replace('.up.sql', '')));
+
+  if (target) {
+    const targetFile = `${target}.up.sql`;
+    if (!files.includes(targetFile)) {
+      throw new Error(`Migration not found: ${target}`);
+    }
+    if (applied.has(target)) {
+      console.log(`Migration already applied: ${target}`);
+      return;
+    }
+    pending = [targetFile];
+  }
 
   if (pending.length === 0) {
     console.log('No pending migrations.');
@@ -61,17 +73,33 @@ async function up(client: Client): Promise<void> {
   }
 }
 
-async function down(client: Client): Promise<void> {
+async function down(client: Client, target?: string): Promise<void> {
+  let name: string;
   const { rows } = await client.query<{ name: string }>(
     'SELECT name FROM schema_migrations ORDER BY applied_at DESC LIMIT 1',
   );
 
-  if (rows.length === 0) {
-    console.log('No migrations to roll back.');
-    return;
+  if (target) {
+    const { rows } = await client.query<{ name: string }>(
+      'SELECT name FROM schema_migrations WHERE name = $1',
+      [target],
+    );
+    if (rows.length === 0) {
+      console.log(`Migration not applied: ${target}`);
+      return;
+    }
+    name = target;
+  } else {
+    const { rows } = await client.query<{ name: string }>(
+      'SELECT name FROM schema_migrations ORDER BY applied_at DESC LIMIT 1',
+    );
+    if (rows.length === 0) {
+      console.log('No migrations to roll back.');
+      return;
+    }
+    name = rows[0].name;
   }
 
-  const name = rows[0].name;
   const file = path.join(MIGRATIONS_DIR, `${name}.down.sql`);
 
   if (!fs.existsSync(file)) {
@@ -93,8 +121,13 @@ async function down(client: Client): Promise<void> {
 
 async function main() {
   const command = process.argv[2];
+  const target = process.argv[3];
+
   if (command !== 'up' && command !== 'down') {
     console.error('Usage: ts-node scripts/migrate.ts <up|down>');
+    console.error(
+      'Usage: ts-node scripts/migrate.ts <up|down> [migration-name]',
+    );
     process.exit(1);
   }
 
@@ -103,6 +136,8 @@ async function main() {
     await bootstrap(client);
     if (command === 'up') await up(client);
     else await down(client);
+    if (command === 'up') await up(client, target);
+    else await down(client, target);
   } finally {
     await client.end();
   }
