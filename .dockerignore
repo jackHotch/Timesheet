@@ -1,0 +1,17 @@
+# Ignore sensitive files
+
+.env
+.aws
+
+# Ignore version control
+
+.git
+.gitignore
+.claude
+
+# Ignore dependencies and build artifacts
+
+node_modules
+dist
+target
+\*.log

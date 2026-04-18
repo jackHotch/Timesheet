@@ -4,7 +4,7 @@ import { Pool, QueryResult, QueryResultRow } from 'pg';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
-  private pool: Pool;
+  private pool!: Pool;
 
   constructor(private config: ConfigService) {}
 
