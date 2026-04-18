@@ -1,4 +1,0 @@
-CREATE TABLE another (
-  id SERIAL PRIMARY KEY,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
