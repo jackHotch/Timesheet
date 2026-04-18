@@ -12,7 +12,12 @@ export class UsersService {
     return result.rows;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findByEmail(email: string) {
+    const result = await this.db.query<{
+      id: string;
+      email: string;
+      password_hash: string;
+    }>(`SELECT id, email, password_hash FROM users WHERE email = $1`, [email]);
+    return result.rows[0] ?? null;
   }
 }
