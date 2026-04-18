@@ -1,3 +1,8 @@
+'use client'
+
+import { useHealth } from '@/hooks/use-health'
+
 export default function Home() {
-  return <div>hi</div>
+  const { data } = useHealth()
+  return <div>{data}</div>
 }

@@ -1,14 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { useQuery } from '@tanstack/react-query'
+import api from '@/lib/api'
 
 async function fetchHealth() {
-  const { data } = await api.get<string>("/");
-  return data;
+  const { data } = await api.get<string>('/')
+  return data
 }
 
 export function useHealth() {
   return useQuery({
-    queryKey: ["health"],
+    queryKey: ['health'],
     queryFn: fetchHealth,
-  });
+  })
 }
