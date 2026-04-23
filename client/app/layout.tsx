@@ -2,6 +2,7 @@ import { Geist_Mono, DM_Sans, Public_Sans } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import QueryProvider from "@/providers/query-provider"
 import { cn } from "@/lib/utils"
 
 const publicSansHeading = Public_Sans({
@@ -34,7 +35,9 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )
