@@ -27,9 +27,34 @@ export default function Page() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
-      {/* Left panel — login form */}
-      <div className="relative z-10 flex h-full w-1/2 flex-col justify-between rounded-r-4xl bg-card p-10 shadow-2xl">
+    <div className="relative h-screen w-screen overflow-hidden">
+      {/* Full-screen gradient — covers the whole viewport including behind the card's rounded corners */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: [
+            "radial-gradient(ellipse at 90% 10%, oklch(0.75 0.17 315 / 0.5) 0%, transparent 50%)",
+            "radial-gradient(ellipse at 60% 90%, oklch(0.35 0.28 292 / 0.65) 0%, transparent 45%)",
+            "linear-gradient(148deg, oklch(0.17 0.06 288) 0%, oklch(0.36 0.22 299) 45%, oklch(0.55 0.27 305) 75%, oklch(0.62 0.2 310) 100%)",
+          ].join(", "),
+        }}
+      />
+
+      {/* Right side content — clock icon + text, centered in the right 55% */}
+      <div className="absolute right-0 top-0 flex h-full w-[55%] flex-col items-center justify-center gap-6 text-center">
+        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/10 shadow-xl ring-1 ring-white/20 backdrop-blur-sm">
+          <Clock size={48} color="white" strokeWidth={1.5} />
+        </div>
+        <div className="space-y-2">
+          <h3 className="font-heading text-2xl font-bold text-white">Track your time</h3>
+          <p className="max-w-xs text-sm text-white/60">
+            Log hours, manage projects, and review your productivity — all in one place.
+          </p>
+        </div>
+      </div>
+
+      {/* Login card — floats on top; rounded-r-4xl corners reveal gradient behind */}
+      <div className="relative z-10 flex h-full w-1/2 flex-col justify-between rounded-r-4xl bg-background p-10 shadow-2xl">
         {/* Brand */}
         <div className="flex items-center gap-2">
           <Clock color="var(--primary)" size={22} />
@@ -90,32 +115,6 @@ export default function Page() {
         <p className="text-xs text-muted-foreground">
           &copy; {new Date().getFullYear()} Timesheet. All rights reserved.
         </p>
-      </div>
-
-      {/* Right panel — illustration */}
-      <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-primary/10">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 80% at 60% 50%, oklch(0.827 0.119 306.383 / 0.35) 0%, oklch(0.496 0.265 301.924 / 0.18) 50%, transparent 100%)",
-          }}
-        />
-        {/* Decorative circles */}
-        <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute -bottom-32 left-16 h-80 w-80 rounded-full bg-primary/15 blur-3xl" />
-
-        <div className="relative flex flex-col items-center gap-6 text-center">
-          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-primary/20 shadow-xl ring-1 ring-primary/30 backdrop-blur-sm">
-            <Clock size={48} color="var(--primary)" strokeWidth={1.5} />
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-heading text-2xl font-bold text-foreground">Track your time</h3>
-            <p className="max-w-xs text-sm text-muted-foreground">
-              Log hours, manage projects, and review your productivity — all in one place.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )
