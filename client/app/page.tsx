@@ -28,7 +28,6 @@ export default function Page() {
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">
-      {/* Full-screen gradient — covers the whole viewport including behind the card's rounded corners */}
       <div
         className="absolute inset-0"
         style={{
@@ -40,7 +39,6 @@ export default function Page() {
         }}
       />
 
-      {/* Right side content — clock icon + text, centered in the right 55% */}
       <div className="absolute right-0 top-0 flex h-full w-[55%] flex-col items-center justify-center gap-6 text-center">
         <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/10 shadow-xl ring-1 ring-white/20 backdrop-blur-sm">
           <Clock size={48} color="white" strokeWidth={1.5} />
@@ -53,7 +51,6 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Login card — floats on top; rounded-r-4xl corners reveal gradient behind */}
       <div className="relative z-10 flex h-full w-1/2 flex-col justify-between rounded-r-4xl bg-background p-10 shadow-2xl">
         {/* Brand */}
         <div className="flex items-center gap-2">
@@ -61,7 +58,6 @@ export default function Page() {
           <span className="font-heading text-xl font-bold text-primary">Timesheet</span>
         </div>
 
-        {/* Form */}
         <div className="mx-auto w-full max-w-sm space-y-8">
           <div className="space-y-1">
             <h2 className="font-heading text-3xl font-bold tracking-tight">Welcome back</h2>
@@ -111,7 +107,6 @@ export default function Page() {
           </form>
         </div>
 
-        {/* Footer */}
         <p className="text-xs text-muted-foreground">
           &copy; {new Date().getFullYear()} Timesheet. All rights reserved.
         </p>

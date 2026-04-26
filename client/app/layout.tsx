@@ -1,7 +1,7 @@
 import { Geist_Mono, DM_Sans, Public_Sans } from "next/font/google"
 
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/utils/theme-provider"
 import QueryProvider from "@/providers/query-provider"
 import { cn } from "@/lib/utils"
 
