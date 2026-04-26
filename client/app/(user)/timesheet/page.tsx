@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useHourlyRate } from "@/hooks/use-hourly-rate"
+import { SummaryCard } from "@/components/timesheet/summary-card"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -159,25 +160,24 @@ export default function TimesheetPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="border-b border-border bg-card px-8 py-5">
+    <div className="min-h-screen p-8">
+      <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-heading font-bold text-foreground">Timesheet</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {period.half === "first" ? "First half" : "Second half"} · {MONTH_NAMES[period.month]} {period.year}
+              {MONTH_NAMES[period.month]} {period.year} · {period.half === "first" ? "First half" : "Second half"}
             </p>
           </div>
 
-          {/* Period navigator */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 bg-background border rounded-full text-sm p-2">
             <button
               onClick={() => setPeriod(p => navigatePeriod(p, -1))}
-              className="w-9 h-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+              className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <div className="text-center min-w-[180px]">
+            <div className="text-center min-w-45">
               <p className="font-semibold text-foreground">{periodLabel}</p>
               {isCurrentPeriod(period) && (
                 <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
@@ -187,7 +187,7 @@ export default function TimesheetPage() {
             </div>
             <button
               onClick={() => setPeriod(p => navigatePeriod(p, 1))}
-              className="w-9 h-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+              className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -195,13 +195,12 @@ export default function TimesheetPage() {
         </div>
       </div>
 
-      <div className="px-8 py-6 space-y-6">
-        {/* Summary cards */}
+      <div className=" space-y-6">
         <div className="grid grid-cols-3 gap-4">
           <SummaryCard
             label="Total Hours"
             value={grandTotal.toFixed(1)}
-            sub="this period"
+            sub={`this period · ${projects.length} projects`}
           />
           <SummaryCard
             label="Estimated Earnings"
@@ -213,203 +212,182 @@ export default function TimesheetPage() {
             value={String(daysLogged)}
             sub={`of ${days.length} workdays`}
           />
+
         </div>
 
-        <div className="grid grid-cols-[1fr_300px] gap-6 items-start">
-          {/* Left column */}
-          <div className="space-y-4 min-w-0">
-            {/* Project manager */}
-            <div className="bg-card border border-border rounded-xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-foreground">Projects</h2>
-                <span className="text-xs text-muted-foreground">{projects.length} active</span>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4 min-h-[28px]">
-                {projects.map(project => {
-                  const color = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
-                  return (
-                    <span
-                      key={project.id}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
-                        color.badge
-                      )}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: color.dot }} />
-                      {project.name}
-                      <button
-                        onClick={() => removeProject(project.id)}
-                        className="ml-0.5 opacity-50 hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  )
-                })}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add a new project..."
-                  value={newProject}
-                  onChange={e => setNewProject(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && addProject()}
-                  className="h-9 text-sm"
-                />
-                <Button onClick={addProject} disabled={!newProject.trim()} size="sm" className="whitespace-nowrap">
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add
-                </Button>
-              </div>
-            </div>
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-foreground">Projects</h2>
+            <span className="text-xs text-muted-foreground">{projects.length} active</span>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4 min-h-7">
+            {projects.map(project => {
+              const color = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
+              return (
+                <span
+                  key={project.id}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
+                    color.badge
+                  )}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: color.dot }} />
+                  {project.name}
+                  <button
+                    onClick={() => removeProject(project.id)}
+                    className="ml-0.5 opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )
+            })}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add a new project..."
+              value={newProject}
+              onChange={e => setNewProject(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addProject()}
+              className="h-9 text-sm"
+            />
+            <Button onClick={addProject} disabled={!newProject.trim()} className="h-9 whitespace-nowrap">
+              <Plus />
+              Add
+            </Button>
+          </div>
+        </div>
 
-            {/* Time grid */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/30">
-                      <th className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-36 whitespace-nowrap">
-                        Day
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-36 whitespace-nowrap">
+                    Day
+                  </th>
+                  {projects.map(project => {
+                    const color = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
+                    return (
+                      <th
+                        key={project.id}
+                        className={cn(
+                          "px-3 py-3.5 text-xs font-semibold uppercase tracking-wider text-center min-w-30 whitespace-nowrap",
+                          color.header
+                        )}
+                      >
+                        {project.name}
                       </th>
+                    )
+                  })}
+                  <th className="px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right whitespace-nowrap">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {days.map((day, dayIdx) => {
+                  const key      = dateKey(day)
+                  const dayTotal = dayTotals[dayIdx]
+                  return (
+                    <tr
+                      key={key}
+                      className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
+                    >
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <p className="font-semibold text-foreground">{DAY_NAMES[day.getDay()]}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {MONTH_SHORT[day.getMonth()]} {day.getDate()}
+                        </p>
+                      </td>
                       {projects.map(project => {
-                        const color = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
+                        const val = (entries[key] || {})[project.id] || 0
                         return (
-                          <th
-                            key={project.id}
-                            className={cn(
-                              "px-3 py-3.5 text-xs font-semibold uppercase tracking-wider text-center min-w-[120px] whitespace-nowrap",
-                              color.header
-                            )}
-                          >
-                            {project.name}
-                          </th>
+                          <td key={project.id} className="px-3 py-3">
+                            <HoursInput value={val} onChange={v => setEntry(day, project.id, v)} />
+                          </td>
                         )
                       })}
-                      <th className="px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right whitespace-nowrap">
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {days.map((day, dayIdx) => {
-                      const key      = dateKey(day)
-                      const dayTotal = dayTotals[dayIdx]
-                      return (
-                        <tr
-                          key={key}
-                          className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
-                        >
-                          <td className="px-5 py-3.5 whitespace-nowrap">
-                            <p className="font-semibold text-foreground">{DAY_NAMES[day.getDay()]}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {MONTH_SHORT[day.getMonth()]} {day.getDate()}
-                            </p>
-                          </td>
-                          {projects.map(project => {
-                            const val = (entries[key] || {})[project.id] || 0
-                            return (
-                              <td key={project.id} className="px-3 py-3">
-                                <HoursInput value={val} onChange={v => setEntry(day, project.id, v)} />
-                              </td>
-                            )
-                          })}
-                          <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                            <span className={cn("font-semibold", dayTotal > 0 ? "text-foreground" : "text-muted-foreground")}>
-                              {dayTotal > 0 ? dayTotal.toFixed(1) : "—"}
-                            </span>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-muted/40 border-t-2 border-border">
-                      <td className="px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-                        Total
-                      </td>
-                      {projectTotals.map((total, i) => (
-                        <td key={projects[i].id} className="px-3 py-3.5 text-center whitespace-nowrap">
-                          <span className="text-sm font-bold text-foreground">
-                            {total > 0 ? total.toFixed(1) : "—"}
-                          </span>
-                        </td>
-                      ))}
                       <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                        <span className="text-sm font-bold text-primary">
-                          {grandTotal > 0 ? grandTotal.toFixed(1) : "—"}
+                        <span className={cn("font-semibold", dayTotal > 0 ? "text-foreground" : "text-muted-foreground")}>
+                          {dayTotal > 0 ? dayTotal.toFixed(1) : "—"}
                         </span>
                       </td>
                     </tr>
-                  </tfoot>
-                </table>
+                  )
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-muted/40 border-t-2 border-border">
+                  <td className="px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                    Total
+                  </td>
+                  {projectTotals.map((total, i) => (
+                    <td key={projects[i].id} className="px-3 py-3.5 text-center whitespace-nowrap">
+                      <span className="text-sm font-bold text-foreground">
+                        {total > 0 ? total.toFixed(1) : "—"}
+                      </span>
+                    </td>
+                  ))}
+                  <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                    <span className="text-sm font-bold text-primary">
+                      {grandTotal > 0 ? grandTotal.toFixed(1) : "—"}
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_300px] gap-6 items-start">
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-foreground mb-4">Invoice Preview</h2>
+            <div className="space-y-4">
+              {projects.map((project, i) => {
+                const total  = projectTotals[i]
+                const amount = total * HOURLY_RATE
+                const color  = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
+                const pct    = grandTotal > 0 ? (total / grandTotal) * 100 : 0
+                return (
+                  <div key={project.id} className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-3 min-w-0 ">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color.dot }} />
+                      <span className="text-sm text-foreground truncate">{project.name}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="text-sm font-semibold text-muted-foreground ml-2 shrink-0 min-w-8">
+                        {total.toFixed(1)} hrs
+                      </span>
+                      <span className="text-sm text-foreground mt-0.5 text-right min-w-24">${amount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-5 pt-4 border-t border-border">
+              <div className="flex items-end justify-between">
+                <span className="text-sm font-semibold text-foreground">Total Due</span>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-foreground">
+                    ${estimatedEarnings.toFixed(2)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right column */}
-          <div className="space-y-4">
-            {/* Invoice overview */}
-            <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Invoice Overview</h2>
-              <div className="space-y-4">
-                {projects.map((project, i) => {
-                  const total  = projectTotals[i]
-                  const amount = total * HOURLY_RATE
-                  const color  = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
-                  const pct    = grandTotal > 0 ? (total / grandTotal) * 100 : 0
-                  return (
-                    <div key={project.id}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color.dot }} />
-                          <span className="text-sm text-foreground truncate">{project.name}</span>
-                        </div>
-                        <span className="text-sm font-semibold text-foreground ml-2 shrink-0">
-                          {total > 0 ? `${total.toFixed(1)}h` : "—"}
-                        </span>
-                      </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%`, background: color.dot }}
-                        />
-                      </div>
-                      {total > 0 && (
-                        <p className="text-xs text-muted-foreground mt-0.5 text-right">
-                          ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="mt-5 pt-4 border-t border-border">
-                <div className="flex items-end justify-between">
-                  <span className="text-sm font-semibold text-foreground">Invoice Total</span>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-foreground">
-                      ${estimatedEarnings.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{grandTotal.toFixed(1)} hours</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Invoice actions */}
-            <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-foreground mb-3">Invoice Actions</h2>
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start gap-2 text-sm" disabled>
-                  <Upload className="w-4 h-4" />
-                  Upload Invoice
-                </Button>
-                <Button variant="outline" className="w-full justify-start gap-2 text-sm" disabled>
-                  <FileText className="w-4 h-4" />
-                  Generate PDF Summary
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-3">Coming soon</p>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-foreground mb-3">Documents</h2>
+            <div className="space-y-2">
+              <Button variant="outline" className="w-full justify-start gap-2 text-sm" disabled>
+                <Upload className="w-4 h-4" />
+                Upload Invoice
+              </Button>
+              <Button variant="outline" className="w-full justify-start gap-2 text-sm" disabled>
+                <FileText className="w-4 h-4" />
+                Generate PDF Summary
+              </Button>
             </div>
           </div>
         </div>
@@ -419,16 +397,6 @@ export default function TimesheetPage() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-function SummaryCard({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return (
-    <div className="bg-card border border-border rounded-xl p-5">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-      <p className="text-3xl font-bold text-foreground mt-1.5">{value}</p>
-      <p className="text-xs text-muted-foreground mt-1">{sub}</p>
-    </div>
-  )
-}
 
 function HoursInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [focused, setFocused] = useState(false)
