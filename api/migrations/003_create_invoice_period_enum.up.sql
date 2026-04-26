@@ -1,0 +1,1 @@
+CREATE TYPE billing_period AS ENUM ('FIRST_HALF', 'SECOND_HALF');
