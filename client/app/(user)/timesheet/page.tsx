@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText } from "lucide-rea
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { useHourlyRate } from "@/hooks/use-hourly-rate"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -24,8 +25,6 @@ type Period = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const HOURLY_RATE = 50
-
 const PROJECT_COLORS = [
   { dot: "#6366f1", header: "text-indigo-600",  badge: "bg-indigo-50 text-indigo-700 border-indigo-200"  },
   { dot: "#22c55e", header: "text-green-600",   badge: "bg-green-50 text-green-700 border-green-200"     },
@@ -42,14 +41,10 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ]
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-const DAY_NAMES   = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+const DAY_NAMES   = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
 const INITIAL_PROJECTS: Project[] = [
-  { id: "1", name: "Administration", colorIndex: 0 },
-  { id: "2", name: "Gazyva",         colorIndex: 1 },
-  { id: "3", name: "Orsini",         colorIndex: 2 },
-  { id: "4", name: "Thera",          colorIndex: 3 },
-  { id: "5", name: "Veryfi",         colorIndex: 4 },
+  { id: "1", name: "Administration", colorIndex: 0 }
 ]
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -104,6 +99,7 @@ function dateKey(date: Date): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function TimesheetPage() {
+  const { data: HOURLY_RATE } = useHourlyRate()
   const [period, setPeriod]     = useState<Period>(getCurrentPeriod)
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS)
   const [entries, setEntries]   = useState<Entries>({})

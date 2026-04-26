@@ -1,6 +1,7 @@
 CREATE TABLE configuration (
   id                        UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
-  hourly_rate               NUMERIC(10, 2) NOT NULL
+  item                      TEXT NOT NULL,
+  item_value                TEXT
 );
 
-INSERT INTO configuration (hourly_rate) VALUES (50.00);
+INSERT INTO configuration (item, item_value) VALUES ('hourly_rate', '50.00');
