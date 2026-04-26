@@ -99,13 +99,14 @@ function dateKey(date: Date): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function TimesheetPage() {
-  const { data: HOURLY_RATE } = useHourlyRate()
-  const [period, setPeriod]     = useState<Period>(getCurrentPeriod)
+  const { data } = useHourlyRate()
+  const HOURLY_RATE = data?.hourly_rate
+  const [period, setPeriod] = useState<Period>(getCurrentPeriod)
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS)
-  const [entries, setEntries]   = useState<Entries>({})
+  const [entries, setEntries] = useState<Entries>({})
   const [newProject, setNewProject] = useState("")
 
-  const days        = useMemo(() => getWeekdays(period.year, period.month, period.half), [period])
+  const days = useMemo(() => getWeekdays(period.year, period.month, period.half), [period])
   const periodLabel = useMemo(() => getPeriodLabel(period.year, period.month, period.half), [period])
 
   const dayTotals = useMemo(() =>
@@ -158,8 +159,7 @@ export default function TimesheetPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Page header */}
+    <div className="min-h-screen">
       <div className="border-b border-border bg-card px-8 py-5">
         <div className="flex items-center justify-between">
           <div>
