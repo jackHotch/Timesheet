@@ -65,7 +65,7 @@ function getWeekdays(year: number, month: number, half: "first" | "second"): Dat
 function getPeriodLabel(year: number, month: number, half: "first" | "second"): string {
   const startDay = half === "first" ? 1 : 15
   const endDay   = half === "first" ? 14 : new Date(year, month + 1, 0).getDate()
-  return `${MONTH_SHORT[month]} ${startDay} – ${endDay}, ${year}`
+  return `${MONTH_SHORT[month]} ${startDay}–${endDay}, ${year}`
 }
 
 function navigatePeriod(p: Period, dir: 1 | -1): Period {
@@ -319,8 +319,9 @@ export default function TimesheetPage() {
               </tbody>
               <tfoot>
                 <tr className="bg-muted/40">
-                  <td className="border border-border border-t-2 px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-                    Total
+                  <td className="border border-border border-t-2 px-5 py-3.5 whitespace-nowrap">
+                    <p className="font-semibold text-foreground">Period Total</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{periodLabel}</p>
                   </td>
                   {projectTotals.map((total, i) => (
                     <td key={projects[i].id} className="border border-border border-t-2 px-3 py-3.5 text-center whitespace-nowrap">
@@ -340,7 +341,7 @@ export default function TimesheetPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-[1fr_300px] gap-6 items-start">
+        <div className="grid grid-cols-[1fr_300px] gap-6 items-stretch">
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-foreground mb-4">Invoice Preview</h2>
             <div className="space-y-4">
@@ -377,10 +378,10 @@ export default function TimesheetPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="bg-card border border-border rounded-xl p-5 flex flex-col">
             <h2 className="text-sm font-semibold text-foreground mb-3">Documents</h2>
-            <div className="space-y-2">
-              <div className="h-20 border-2 border-dashed border-border rounded-lg bg-muted/30 flex items-center gap-4 px-4 cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex flex-col gap-2 flex-1">
+              <div className="flex-1 min-h-20 border-2 border-dashed border-border rounded-lg bg-muted/30 flex items-center gap-4 px-4 cursor-pointer hover:bg-muted/50 transition-colors">
                 <div className="w-11 h-11 bg-background border border-border rounded-lg flex items-center justify-center shrink-0 shadow-sm">
                   <Upload className="w-5 h-5 text-muted-foreground" />
                 </div>
@@ -389,7 +390,7 @@ export default function TimesheetPage() {
                   <p className="text-xs text-muted-foreground leading-snug">Drop your generated invoice here, or click to browse.</p>
                 </div>
               </div>
-              <div className="h-20 border border-border rounded-lg bg-muted/30 flex items-center gap-4 px-4 cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex-1 min-h-20 border border-border rounded-lg bg-muted/30 flex items-center gap-4 px-4 cursor-pointer hover:bg-muted/50 transition-colors">
                 <div className="w-11 h-11 bg-background border border-border rounded-lg flex items-center justify-center shrink-0 shadow-sm">
                   <FileText className="w-5 h-5 text-muted-foreground" />
                 </div>
