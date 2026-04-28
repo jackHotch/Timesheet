@@ -260,10 +260,10 @@ export default function TimesheetPage() {
 
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-36 whitespace-nowrap">
+                <tr className="bg-muted/30">
+                  <th className="border border-border text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-56 whitespace-nowrap">
                     Day
                   </th>
                   {projects.map(project => {
@@ -272,7 +272,7 @@ export default function TimesheetPage() {
                       <th
                         key={project.id}
                         className={cn(
-                          "px-3 py-3.5 text-xs font-semibold uppercase tracking-wider text-center min-w-30 whitespace-nowrap",
+                          "border border-border px-3 py-3.5 text-xs font-semibold uppercase tracking-wider text-center min-w-30 whitespace-nowrap",
                           color.header
                         )}
                       >
@@ -280,7 +280,7 @@ export default function TimesheetPage() {
                       </th>
                     )
                   })}
-                  <th className="px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right whitespace-nowrap">
+                  <th className="border border-border px-3 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right whitespace-nowrap w-20">
                     Total
                   </th>
                 </tr>
@@ -292,10 +292,10 @@ export default function TimesheetPage() {
                   return (
                     <tr
                       key={key}
-                      className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
+                      className="hover:bg-muted/20 transition-colors"
                     >
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <p className="font-semibold text-foreground">{DAY_NAMES[day.getDay()]}</p>
+                      <td className="border border-border px-5 py-3.5 whitespace-nowrap">
+                        <p className="font-semibold text-foreground">{DAY_NAMES[day.getDay() - 1]}</p>
                         <p className="text-xs text-muted-foreground">
                           {MONTH_SHORT[day.getMonth()]} {day.getDate()}
                         </p>
@@ -303,14 +303,14 @@ export default function TimesheetPage() {
                       {projects.map(project => {
                         const val = (entries[key] || {})[project.id] || 0
                         return (
-                          <td key={project.id} className="px-3 py-3">
+                          <td key={project.id} className="border border-border px-3 py-3">
                             <HoursInput value={val} onChange={v => setEntry(day, project.id, v)} />
                           </td>
                         )
                       })}
-                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                      <td className="border border-border px-5 py-3.5 text-right whitespace-nowrap">
                         <span className={cn("font-semibold", dayTotal > 0 ? "text-foreground" : "text-muted-foreground")}>
-                          {dayTotal > 0 ? dayTotal.toFixed(1) : "—"}
+                          {dayTotal > 0 ? dayTotal.toFixed(2) : "—"}
                         </span>
                       </td>
                     </tr>
@@ -318,20 +318,20 @@ export default function TimesheetPage() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="bg-muted/40 border-t-2 border-border">
-                  <td className="px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                <tr className="bg-muted/40">
+                  <td className="border border-border border-t-2 px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                     Total
                   </td>
                   {projectTotals.map((total, i) => (
-                    <td key={projects[i].id} className="px-3 py-3.5 text-center whitespace-nowrap">
+                    <td key={projects[i].id} className="border border-border border-t-2 px-3 py-3.5 text-center whitespace-nowrap">
                       <span className="text-sm font-bold text-foreground">
-                        {total > 0 ? total.toFixed(1) : "—"}
+                        {total > 0 ? total.toFixed(2) : "—"}
                       </span>
                     </td>
                   ))}
-                  <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                  <td className="border border-border border-t-2 px-5 py-3.5 text-right whitespace-nowrap">
                     <span className="text-sm font-bold text-primary">
-                      {grandTotal > 0 ? grandTotal.toFixed(1) : "—"}
+                      {grandTotal > 0 ? grandTotal.toFixed(2) : "—"}
                     </span>
                   </td>
                 </tr>
@@ -359,7 +359,7 @@ export default function TimesheetPage() {
                       <span className="text-sm font-semibold text-muted-foreground ml-2 shrink-0 min-w-8">
                         {total.toFixed(1)} hrs
                       </span>
-                      <span className="text-sm text-foreground mt-0.5 text-right min-w-24">${amount.toFixed(2)}</span>
+                      <span className="text-sm text-foreground mt-0.5 text-right min-w-24">${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
                 )
@@ -370,7 +370,7 @@ export default function TimesheetPage() {
                 <span className="text-sm font-semibold text-foreground">Total Due</span>
                 <div className="text-right">
                   <p className="text-lg font-bold text-foreground">
-                    ${estimatedEarnings.toFixed(2)}
+                    ${estimatedEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
@@ -380,14 +380,24 @@ export default function TimesheetPage() {
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-foreground mb-3">Documents</h2>
             <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start gap-2 text-sm" disabled>
-                <Upload className="w-4 h-4" />
-                Upload Invoice
-              </Button>
-              <Button variant="outline" className="w-full justify-start gap-2 text-sm" disabled>
-                <FileText className="w-4 h-4" />
-                Generate PDF Summary
-              </Button>
+              <div className="h-20 border-2 border-dashed border-border rounded-lg bg-muted/30 flex items-center gap-4 px-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="w-11 h-11 bg-background border border-border rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Upload invoice PDF</p>
+                  <p className="text-xs text-muted-foreground leading-snug">Drop your generated invoice here, or click to browse.</p>
+                </div>
+              </div>
+              <div className="h-20 border border-border rounded-lg bg-muted/30 flex items-center gap-4 px-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="w-11 h-11 bg-background border border-border rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+                  <FileText className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Generate PDF Summary</p>
+                  <p className="text-xs text-muted-foreground leading-snug">Export a full summary of this period as a PDF.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -402,38 +412,38 @@ function HoursInput({ value, onChange }: { value: number; onChange: (v: number) 
   const [focused, setFocused] = useState(false)
 
   function step(delta: number) {
-    const next = Math.round(((value || 0) + delta) * 2) / 2
+    const next = Math.round(((value || 0) + delta) * 4) / 4
     onChange(Math.max(0, next))
   }
 
   return (
     <div
       className={cn(
-        "flex items-center border rounded-lg overflow-hidden h-9 transition-colors",
+        "flex items-center border rounded-lg overflow-hidden h-11 transition-colors",
         focused ? "border-primary ring-1 ring-primary/20" : "border-border bg-muted/40"
       )}
     >
       <input
         type="number"
         min={0}
-        max={24}
-        step={0.5}
+        max={16}
+        step={0.25}
         value={value || ""}
         placeholder="—"
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onChange={e => onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-        className="w-14 text-center text-sm bg-transparent outline-none py-1.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-muted-foreground"
+        className="flex-1 min-w-0 text-center text-sm bg-transparent outline-none py-1.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-muted-foreground"
       />
-      <div className="flex flex-col border-l border-border h-full">
+      <div className="flex flex-col border-l border-border h-full shrink-0">
         <button
-          onClick={() => step(0.5)}
+          onClick={() => step(0.25)}
           className="flex-1 px-2 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
         >
           <span className="text-[9px] leading-none">▲</span>
         </button>
         <button
-          onClick={() => step(-0.5)}
+          onClick={() => step(-0.25)}
           className="flex-1 px-2 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors border-t border-border flex items-center justify-center"
         >
           <span className="text-[9px] leading-none">▼</span>
