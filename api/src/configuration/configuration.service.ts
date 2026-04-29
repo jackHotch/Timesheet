@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
 @Injectable()
 export class ConfigurationService {
+  private readonly logger = new Logger(ConfigurationService.name);
+
   constructor(private db: DatabaseService) {}
 
   async getHourlyRate() {
@@ -13,6 +15,8 @@ export class ConfigurationService {
       `,
     );
 
-    return { hourly_rate: Number(result.rows[0].item_value) };
+    const hourlyRate = Number(result.rows[0].item_value);
+    this.logger.debug(`Fetched hourly rate: ${hourlyRate}`);
+    return { hourly_rate: hourlyRate };
   }
 }
