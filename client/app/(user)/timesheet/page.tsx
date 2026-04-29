@@ -1,22 +1,22 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText } from "lucide-react"
+import { useState, useMemo, useRef, useCallback } from "react"
+import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useHourlyRate } from "@/hooks/use-hourly-rate"
 import { SummaryCard } from "@/components/timesheet/summary-card"
+import {
+  useProjects,
+  useTimesheetEntries,
+  useCreateProject,
+  useDeleteProject,
+  useUpsertEntry,
+  type Entries,
+} from "@/hooks/use-timesheet"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-type Project = {
-  id: string
-  name: string
-  colorIndex: number
-}
-
-type Entries = Record<string, Record<string, number>>
 
 type Period = {
   year: number
@@ -43,10 +43,6 @@ const MONTH_NAMES = [
 ]
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const DAY_NAMES   = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-
-const INITIAL_PROJECTS: Project[] = [
-  { id: "1", name: "Administration", colorIndex: 0 }
-]
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -97,15 +93,51 @@ function dateKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
 }
 
+// ISO date string for API calls (YYYY-MM-DD)
+function isoDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function TimesheetPage() {
-  const { data } = useHourlyRate()
-  const HOURLY_RATE = data?.hourly_rate
+  const { data: rateData } = useHourlyRate()
+  const HOURLY_RATE = rateData?.hourly_rate ?? 0
+
   const [period, setPeriod] = useState<Period>(getCurrentPeriod)
-  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS)
-  const [entries, setEntries] = useState<Entries>({})
   const [newProject, setNewProject] = useState("")
+
+  // Local overrides give instant UI feedback; server state is the source of truth on load
+  const [entryOverrides, setEntryOverrides] = useState<Entries>({})
+
+  const { data: projects = [] } = useProjects()
+  const { data: serverEntries = {} } = useTimesheetEntries(period)
+
+  // Merge server entries with local overrides (overrides win)
+  const entries = useMemo<Entries>(() => {
+    const merged: Entries = {}
+    for (const key of new Set([...Object.keys(serverEntries), ...Object.keys(entryOverrides)])) {
+      merged[key] = { ...(serverEntries[key] ?? {}), ...(entryOverrides[key] ?? {}) }
+    }
+    return merged
+  }, [serverEntries, entryOverrides])
+
+  const createProject = useCreateProject()
+  const deleteProject = useDeleteProject()
+  const upsertEntry   = useUpsertEntry(period)
+
+  const saving = upsertEntry.isPending || createProject.isPending
+
+  // Debounce timer refs keyed by "date|projectId"
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  function changePeriod(dir: 1 | -1) {
+    setPeriod(p => navigatePeriod(p, dir))
+    setEntryOverrides({})
+  }
 
   const days = useMemo(() => getWeekdays(period.year, period.month, period.half), [period])
   const periodLabel = useMemo(() => getPeriodLabel(period.year, period.month, period.half), [period])
@@ -125,38 +157,38 @@ export default function TimesheetPage() {
     [days, entries, projects]
   )
 
-  const grandTotal       = useMemo(() => dayTotals.reduce((s, t) => s + t, 0), [dayTotals])
+  const grandTotal        = useMemo(() => dayTotals.reduce((s, t) => s + t, 0), [dayTotals])
   const estimatedEarnings = grandTotal * HOURLY_RATE
-  const daysLogged       = dayTotals.filter(t => t > 0).length
+  const daysLogged        = dayTotals.filter(t => t > 0).length
 
-  function setEntry(day: Date, projectId: string, value: number) {
+  const setEntry = useCallback((day: Date, projectId: string, value: number) => {
     const key = dateKey(day)
-    setEntries(prev => ({
+    const hours = Math.max(0, value)
+
+    // Update local override immediately for instant UI feedback
+    setEntryOverrides(prev => ({
       ...prev,
-      [key]: { ...(prev[key] || {}), [projectId]: Math.max(0, value) },
+      [key]: { ...(prev[key] ?? {}), [projectId]: hours },
     }))
-  }
+
+    // Debounce the network call
+    const timerKey = `${isoDate(day)}|${projectId}`
+    clearTimeout(debounceTimers.current[timerKey])
+    debounceTimers.current[timerKey] = setTimeout(() => {
+      upsertEntry.mutate({ projectId, date: isoDate(day), hours })
+    }, 500)
+  }, [upsertEntry])
 
   function addProject() {
     const name = newProject.trim()
     if (!name) return
     const colorIndex = projects.length % PROJECT_COLORS.length
-    setProjects(prev => [...prev, { id: Date.now().toString(), name, colorIndex }])
+    createProject.mutate({ name, colorIndex })
     setNewProject("")
   }
 
   function removeProject(id: string) {
-    setProjects(prev => prev.filter(p => p.id !== id))
-    setEntries(prev => {
-      const next = { ...prev }
-      Object.keys(next).forEach(key => {
-        if (next[key][id] !== undefined) {
-          const { [id]: _, ...rest } = next[key]
-          next[key] = rest
-        }
-      })
-      return next
-    })
+    deleteProject.mutate(id)
   }
 
   return (
@@ -164,7 +196,10 @@ export default function TimesheetPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-heading font-bold text-foreground">Timesheet</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-heading font-bold text-foreground">Timesheet</h1>
+              {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+            </div>
             <p className="text-sm text-muted-foreground mt-0.5">
               {MONTH_NAMES[period.month]} {period.year} · {period.half === "first" ? "First half" : "Second half"}
             </p>
@@ -172,7 +207,7 @@ export default function TimesheetPage() {
 
           <div className="flex items-center gap-3 bg-background border rounded-full text-sm p-2">
             <button
-              onClick={() => setPeriod(p => navigatePeriod(p, -1))}
+              onClick={() => changePeriod(-1)}
               className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -186,7 +221,7 @@ export default function TimesheetPage() {
               )}
             </div>
             <button
-              onClick={() => setPeriod(p => navigatePeriod(p, 1))}
+              onClick={() => changePeriod(1)}
               className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-accent transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
@@ -349,7 +384,6 @@ export default function TimesheetPage() {
                 const total  = projectTotals[i]
                 const amount = total * HOURLY_RATE
                 const color  = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
-                const pct    = grandTotal > 0 ? (total / grandTotal) * 100 : 0
                 return (
                   <div key={project.id} className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-3 min-w-0 ">

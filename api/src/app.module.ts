@@ -9,6 +9,7 @@ import configuration from './config/configuration';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { ConfigurationModule } from './configuration/configuration.module';
+import { TimesheetModule } from './timesheet/timesheet.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ConfigurationModule } from './configuration/configuration.module';
     UsersModule,
     AuthModule,
     ConfigurationModule,
+    TimesheetModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],
