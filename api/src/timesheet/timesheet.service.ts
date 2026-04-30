@@ -7,7 +7,7 @@ export class TimesheetService {
 
   constructor(private db: DatabaseService) {}
 
-  async getProjects(userId: string) {
+  async getProjects(userId: number) {
     const result = await this.db.query(
       `SELECT id, name, color_index AS "colorIndex"
        FROM user_projects
@@ -19,7 +19,7 @@ export class TimesheetService {
     return result.rows;
   }
 
-  async createProject(userId: string, name: string, colorIndex: number) {
+  async createProject(userId: number, name: string, colorIndex: number) {
     const result = await this.db.query(
       `INSERT INTO user_projects (user_id, name, color_index)
        VALUES ($1, $2, $3)
@@ -30,7 +30,7 @@ export class TimesheetService {
     return result.rows[0];
   }
 
-  async deleteProject(userId: string, projectId: string) {
+  async deleteProject(userId: number, projectId: string) {
     await this.db.query(
       `DELETE FROM user_projects WHERE id = $1 AND user_id = $2`,
       [projectId, userId],
@@ -38,7 +38,7 @@ export class TimesheetService {
     this.logger.debug(`Deleted project ${projectId} for user ${userId}`);
   }
 
-  async getEntries(userId: string, year: number, month: number, half: 'first' | 'second') {
+  async getEntries(userId: number, year: number, month: number, half: 'first' | 'second') {
     const startDay = half === 'first' ? 1 : 15;
     const endDay = half === 'first' ? 14 : new Date(year, month + 1, 0).getDate();
     const startDate = new Date(year, month, startDay).toISOString().split('T')[0];
@@ -56,7 +56,7 @@ export class TimesheetService {
     return result.rows;
   }
 
-  async upsertEntry(userId: string, projectId: string, date: string, hours: number) {
+  async upsertEntry(userId: number, projectId: string, date: string, hours: number) {
     if (hours <= 0) {
       await this.db.query(
         `DELETE FROM timesheet_entries

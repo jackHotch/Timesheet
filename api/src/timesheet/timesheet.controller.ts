@@ -7,53 +7,47 @@ import {
   Param,
   Body,
   Query,
-  Req,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { TimesheetService } from './timesheet.service';
+import { User } from '../auth/user.decorator';
 
 @Controller('timesheet')
 export class TimesheetController {
   constructor(private readonly timesheetService: TimesheetService) {}
 
   @Get('projects')
-  getProjects(@Req() req: Request) {
-    const userId = (req as any).user.sub;
+  getProjects(@User() userId: number) {
     return this.timesheetService.getProjects(userId);
   }
 
   @Post('projects')
   createProject(
-    @Req() req: Request,
+    @User() userId: number,
     @Body() body: { name: string; colorIndex: number },
   ) {
-    const userId = (req as any).user.sub;
     return this.timesheetService.createProject(userId, body.name, body.colorIndex);
   }
 
   @Delete('projects/:id')
-  deleteProject(@Req() req: Request, @Param('id') projectId: string) {
-    const userId = (req as any).user.sub;
+  deleteProject(@User() userId: number, @Param('id') projectId: string) {
     return this.timesheetService.deleteProject(userId, projectId);
   }
 
   @Get('entries')
   getEntries(
-    @Req() req: Request,
+    @User() userId: number,
     @Query('year') year: string,
     @Query('month') month: string,
     @Query('half') half: 'first' | 'second',
   ) {
-    const userId = (req as any).user.sub;
     return this.timesheetService.getEntries(userId, Number(year), Number(month), half);
   }
 
   @Put('entries')
   upsertEntry(
-    @Req() req: Request,
+    @User() userId: number,
     @Body() body: { projectId: string; date: string; hours: number },
   ) {
-    const userId = (req as any).user.sub;
     return this.timesheetService.upsertEntry(userId, body.projectId, body.date, body.hours);
   }
 }
