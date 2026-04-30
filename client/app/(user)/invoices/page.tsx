@@ -27,7 +27,7 @@ const INVOICES: Invoice[] = [
     id: "inv-12",
     year: 2026, month: 3, half: "first",
     totalHours: 0, totalAmount: 0, status: "draft", hasFile: false,
-    projects: [],
+    projects: [{ name: "Administration", hours: 0 }],
   },
   {
     id: "inv-11",

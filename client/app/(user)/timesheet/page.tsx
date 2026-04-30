@@ -109,6 +109,7 @@ export default function TimesheetPage() {
 
   const [period, setPeriod] = useState<Period>(getCurrentPeriod)
   const [newProject, setNewProject] = useState("")
+  const [activatedProjectIds, setActivatedProjectIds] = useState<Set<string>>(new Set())
 
   // Local overrides give instant UI feedback; server state is the source of truth on load
   const [entryOverrides, setEntryOverrides] = useState<Entries>({})
@@ -137,24 +138,39 @@ export default function TimesheetPage() {
   function changePeriod(dir: 1 | -1) {
     setPeriod(p => navigatePeriod(p, dir))
     setEntryOverrides({})
+    setActivatedProjectIds(new Set())
   }
 
   const days = useMemo(() => getWeekdays(period.year, period.month, period.half), [period])
   const periodLabel = useMemo(() => getPeriodLabel(period.year, period.month, period.half), [period])
 
+  // Only show projects that are relevant to this period: Administration always, plus any
+  // with logged entries or explicitly added by the user this session.
+  const periodProjects = useMemo(() => {
+    const withEntries = new Set<string>()
+    for (const dayEntries of Object.values(entries)) {
+      for (const [projectId, hours] of Object.entries(dayEntries)) {
+        if ((hours as number) > 0) withEntries.add(projectId)
+      }
+    }
+    return projects.filter(
+      p => p.name === "Administration" || withEntries.has(p.id) || activatedProjectIds.has(p.id)
+    )
+  }, [projects, entries, activatedProjectIds])
+
   const dayTotals = useMemo(() =>
     days.map(day => {
       const key = dateKey(day)
-      return projects.reduce((sum, p) => sum + ((entries[key] || {})[p.id] || 0), 0)
+      return periodProjects.reduce((sum, p) => sum + ((entries[key] || {})[p.id] || 0), 0)
     }),
-    [days, entries, projects]
+    [days, entries, periodProjects]
   )
 
   const projectTotals = useMemo(() =>
-    projects.map(project =>
+    periodProjects.map(project =>
       days.reduce((sum, day) => sum + ((entries[dateKey(day)] || {})[project.id] || 0), 0)
     ),
-    [days, entries, projects]
+    [days, entries, periodProjects]
   )
 
   const grandTotal        = useMemo(() => dayTotals.reduce((s, t) => s + t, 0), [dayTotals])
@@ -182,8 +198,15 @@ export default function TimesheetPage() {
   function addProject() {
     const name = newProject.trim()
     if (!name) return
-    const colorIndex = projects.length % PROJECT_COLORS.length
-    createProject.mutate({ name, colorIndex })
+    const existing = projects.find(p => p.name.toLowerCase() === name.toLowerCase())
+    if (existing) {
+      setActivatedProjectIds(prev => new Set([...prev, existing.id]))
+    } else {
+      const colorIndex = projects.length % PROJECT_COLORS.length
+      createProject.mutate({ name, colorIndex }, {
+        onSuccess: (data) => setActivatedProjectIds(prev => new Set([...prev, data.id])),
+      })
+    }
     setNewProject("")
   }
 
@@ -235,7 +258,7 @@ export default function TimesheetPage() {
           <SummaryCard
             label="Total Hours"
             value={grandTotal.toFixed(1)}
-            sub={`this period · ${projects.length} projects`}
+            sub={`this period · ${periodProjects.length} projects`}
           />
           <SummaryCard
             label="Estimated Earnings"
@@ -253,10 +276,10 @@ export default function TimesheetPage() {
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-foreground">Projects</h2>
-            <span className="text-xs text-muted-foreground">{projects.length} active</span>
+            <span className="text-xs text-muted-foreground">{periodProjects.length} active</span>
           </div>
           <div className="flex flex-wrap gap-2 mb-4 min-h-7">
-            {projects.map(project => {
+            {periodProjects.map(project => {
               const color = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
               return (
                 <span
@@ -301,7 +324,7 @@ export default function TimesheetPage() {
                   <th className="border border-border text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-56 whitespace-nowrap">
                     Day
                   </th>
-                  {projects.map(project => {
+                  {periodProjects.map(project => {
                     const color = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
                     return (
                       <th
@@ -335,7 +358,7 @@ export default function TimesheetPage() {
                           {MONTH_SHORT[day.getMonth()]} {day.getDate()}
                         </p>
                       </td>
-                      {projects.map(project => {
+                      {periodProjects.map(project => {
                         const val = (entries[key] || {})[project.id] || 0
                         return (
                           <td key={project.id} className="border border-border px-3 py-3">
@@ -359,7 +382,7 @@ export default function TimesheetPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">{periodLabel}</p>
                   </td>
                   {projectTotals.map((total, i) => (
-                    <td key={projects[i].id} className="border border-border border-t-2 px-3 py-3.5 text-center whitespace-nowrap">
+                    <td key={periodProjects[i].id} className="border border-border border-t-2 px-3 py-3.5 text-center whitespace-nowrap">
                       <span className="text-sm font-bold text-foreground">
                         {total > 0 ? total.toFixed(2) : "—"}
                       </span>
@@ -380,7 +403,7 @@ export default function TimesheetPage() {
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-foreground mb-4">Invoice Preview</h2>
             <div className="space-y-4">
-              {projects.map((project, i) => {
+              {periodProjects.map((project, i) => {
                 const total  = projectTotals[i]
                 const amount = total * HOURLY_RATE
                 const color  = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
