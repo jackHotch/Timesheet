@@ -10,6 +10,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { ConfigurationModule } from './configuration/configuration.module';
 import { TimesheetModule } from './timesheet/timesheet.module';
+import { InvoicesModule } from './invoices/invoices.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TimesheetModule } from './timesheet/timesheet.module';
     AuthModule,
     ConfigurationModule,
     TimesheetModule,
+    InvoicesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],
