@@ -1,17 +1,15 @@
-import ProtectedLayout from "@/components/utils/protected-layout"
-import AppSidebar from "@/components/layout/sidebar"
-import { Header } from "@/components/layout/header"
+import ProtectedLayout from '@/components/utils/protected-layout'
+import AppSidebar from '@/components/layout/sidebar'
+import { Header } from '@/components/layout/header'
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   return (
     <ProtectedLayout>
       <div className="flex h-screen bg-background">
         <AppSidebar />
-        <div className="flex flex-col flex-1 ml-60 bg-sidebar">
+        <div className="ml-60 flex flex-1 flex-col bg-sidebar">
           <Header />
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
+          <main className="flex-1 overflow-y-auto">{children}</main>
         </div>
       </div>
     </ProtectedLayout>

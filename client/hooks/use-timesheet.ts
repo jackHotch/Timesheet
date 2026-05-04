@@ -39,7 +39,7 @@ function rowsToEntries(rows: EntryRow[]): Entries {
 export function useProjects() {
   return useQuery<Project[]>({
     queryKey: ['timesheet', 'projects'],
-    queryFn: () => api.get('/timesheet/projects').then(r => r.data),
+    queryFn: () => api.get('/timesheet/projects').then((r) => r.data),
     staleTime: 60_000,
   })
 }
@@ -52,7 +52,7 @@ export function useTimesheetEntries(period: Period) {
         .get('/timesheet/entries', {
           params: { year: period.year, month: period.month, half: period.half },
         })
-        .then(r => rowsToEntries(r.data)),
+        .then((r) => rowsToEntries(r.data)),
     staleTime: 60_000,
   })
 }
@@ -61,7 +61,7 @@ export function useCreateProject() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (vars: { name: string; colorIndex: number }) =>
-      api.post('/timesheet/projects', vars).then(r => r.data),
+      api.post('/timesheet/projects', vars).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timesheet', 'projects'] })
     },
@@ -71,14 +71,12 @@ export function useCreateProject() {
 export function useDeleteProject() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (projectId: string) =>
-      api.delete(`/timesheet/projects/${projectId}`),
+    mutationFn: (projectId: string) => api.delete(`/timesheet/projects/${projectId}`),
     onMutate: async (projectId) => {
       await queryClient.cancelQueries({ queryKey: ['timesheet', 'projects'] })
       const previous = queryClient.getQueryData<Project[]>(['timesheet', 'projects'])
-      queryClient.setQueryData<Project[]>(
-        ['timesheet', 'projects'],
-        old => (old ?? []).filter(p => p.id !== projectId),
+      queryClient.setQueryData<Project[]>(['timesheet', 'projects'], (old) =>
+        (old ?? []).filter((p) => p.id !== projectId)
       )
       return { previous }
     },
@@ -93,8 +91,7 @@ export function useDeleteProject() {
 export function useUpsertEntry(period: Period) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (vars: { projectId: string; date: string; hours: number }) =>
-      api.put('/timesheet/entries', vars),
+    mutationFn: (vars: { projectId: string; date: string; hours: number }) => api.put('/timesheet/entries', vars),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: entriesQueryKey(period) })
     },
