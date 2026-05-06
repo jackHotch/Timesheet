@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useHourlyRate } from '@/hooks/use-hourly-rate'
 import { SummaryCard } from '@/components/timesheet/summary-card'
+import { useInvoiceForPeriod, useUpdateInvoiceStatus, type InvoiceStatus } from '@/hooks/use-invoice'
 import {
   useProjects,
   useTimesheetEntries,
@@ -160,6 +161,9 @@ export default function TimesheetPage() {
   const HOURLY_RATE = rateData?.hourly_rate ?? 0
 
   const [period, setPeriod] = useState<Period>(getCurrentPeriod)
+
+  const { data: invoice } = useInvoiceForPeriod(period)
+  const updateStatus = useUpdateInvoiceStatus(period)
   const [newProject, setNewProject] = useState('')
   const [activatedProjectIds, setActivatedProjectIds] = useState<Set<string>>(new Set())
 
@@ -289,27 +293,61 @@ export default function TimesheetPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 rounded-full border bg-background p-2 text-sm">
-            <button
-              onClick={() => changePeriod(-1)}
-              className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-accent"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <div className="min-w-45 text-center">
-              <p className="font-semibold text-foreground">{periodLabel}</p>
-              {isCurrentPeriod(period) && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                  Current period
-                </span>
-              )}
+          <div className="flex items-center gap-3">
+            {invoice && (
+              <div className="relative flex items-center">
+                <span className={cn(
+                  "pointer-events-none absolute left-2.5 h-1.5 w-1.5 rounded-full",
+                  invoice.status === 'draft' && 'bg-muted-foreground',
+                  invoice.status === 'sent' && 'bg-blue-500',
+                  invoice.status === 'paid' && 'bg-green-500',
+                  invoice.status === 'overdue' && 'bg-red-500',
+                )} />
+                <select
+                  value={invoice.status}
+                  disabled={updateStatus.isPending}
+                  onChange={(e) => updateStatus.mutate({ id: invoice.id, status: e.target.value as InvoiceStatus })}
+                  className={cn(
+                    "h-9 appearance-none rounded-full border border-border bg-background pl-7 pr-7 text-sm font-medium outline-none transition-colors hover:bg-accent cursor-pointer disabled:opacity-50",
+                    invoice.status === 'draft' && 'text-muted-foreground',
+                    invoice.status === 'sent' && 'text-blue-600',
+                    invoice.status === 'paid' && 'text-green-600',
+                    invoice.status === 'overdue' && 'text-red-600',
+                  )}
+                >
+                  <option value="draft">Draft</option>
+                  <option value="sent">Sent</option>
+                  <option value="paid">Paid</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+                <svg className="pointer-events-none absolute right-2.5 h-3 w-3 text-muted-foreground" viewBox="0 0 12 12" fill="none">
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 rounded-full border bg-background p-2 text-sm">
+              <button
+                onClick={() => changePeriod(-1)}
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-accent"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="min-w-45 text-center">
+                <p className="font-semibold text-foreground">{periodLabel}</p>
+                {isCurrentPeriod(period) && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    Current period
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => changePeriod(1)}
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-accent"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              onClick={() => changePeriod(1)}
-              className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-accent"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
           </div>
         </div>
       </div>
