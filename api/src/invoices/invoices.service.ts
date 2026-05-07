@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 
 @Injectable()
 export class InvoicesService {
@@ -88,24 +89,32 @@ export class InvoicesService {
     return result.rows;
   }
 
+  async updateInvoice(userId: number, invoiceId: string, body: UpdateInvoiceDto) {
+    const columnMap: Record<keyof UpdateInvoiceDto, string> = {
+      status: 'status',
+    };
 
-  // async getInvoiceForPeriod(userId: number, year: number, month: number, half: 'first' | 'second') {
-  //   const period = half === 'first' ? 'FIRST_HALF' : 'SECOND_HALF';
-  //   const result = await this.db.query(
-  //     `SELECT id, status FROM invoices WHERE user_id = $1 AND year = $2 AND month = $3 AND period = $4`,
-  //     [userId, year, month, period],
-  //   );
-  //   return result.rows[0] ?? null;
-  // }
+    const params: (number | string)[] = [invoiceId, userId];
+    const setClauses: string[] = [];
 
-  // async updateInvoiceStatus(userId: number, invoiceId: string, status: InvoiceStatus) {
-  //   const result = await this.db.query(
-  //     `UPDATE invoices SET status = $1, updated_at = now()
-  //      WHERE id = $2 AND user_id = $3
-  //      RETURNING id, status`,
-  //     [status, invoiceId, userId],
-  //   );
-  //   if (result.rows.length === 0) throw new NotFoundException('Invoice not found');
-  //   return result.rows[0];
-  // }
+    for (const [key, column] of Object.entries(columnMap) as [keyof UpdateInvoiceDto, string][]) {
+      if (body[key] !== undefined) {
+        params.push(body[key] as string);
+        setClauses.push(`${column} = $${params.length}`);
+      }
+    }
+
+    if (setClauses.length === 0) return;
+
+    const result = await this.db.query(
+      `UPDATE invoices SET ${setClauses.join(', ')}, updated_at = now()
+       WHERE id = $1 
+       AND user_id = $2
+       RETURNING id, status`,
+      params,
+    );
+
+    if (result.rows.length === 0) throw new NotFoundException('Invoice not found');
+    return result.rows[0];
+  }
 }
