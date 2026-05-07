@@ -4,10 +4,11 @@ import { useState, useMemo, useRef, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { StatusDropdown } from '@/components/ui/status-dropdown'
 import { cn } from '@/lib/utils'
 import { useHourlyRate } from '@/hooks/use-hourly-rate'
 import { SummaryCard } from '@/components/timesheet/summary-card'
-import { useInvoicesForPeriod, useUpdateInvoiceStatus, type InvoiceStatus } from '@/hooks/use-invoice'
+import { useInvoicesForPeriod, useUpdateInvoiceStatus, INVOICE_STATUS_OPTIONS, type InvoiceStatus } from '@/hooks/use-invoice'
 import {
   useProjects,
   useTimesheetEntries,
@@ -298,35 +299,12 @@ export default function TimesheetPage() {
 
           <div className="flex items-center gap-3">
             {invoice && (
-              <div className="relative flex items-center">
-                <span className={cn(
-                  "pointer-events-none absolute left-2.5 h-1.5 w-1.5 rounded-full",
-                  invoice.status === 'draft' && 'bg-muted-foreground',
-                  invoice.status === 'sent' && 'bg-blue-500',
-                  invoice.status === 'paid' && 'bg-green-500',
-                  invoice.status === 'overdue' && 'bg-red-500',
-                )} />
-                <select
-                  value={invoice.status}
-                  disabled={updateStatus.isPending}
-                  onChange={(e) => updateStatus.mutate({ id: invoice.invoice_id, status: e.target.value as InvoiceStatus })}
-                  className={cn(
-                    "h-9 appearance-none rounded-full border border-border bg-background pl-7 pr-7 text-sm font-medium outline-none transition-colors hover:bg-accent cursor-pointer disabled:opacity-50",
-                    invoice.status === 'draft' && 'text-muted-foreground',
-                    invoice.status === 'sent' && 'text-blue-600',
-                    invoice.status === 'paid' && 'text-green-600',
-                    invoice.status === 'overdue' && 'text-red-600',
-                  )}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="sent">Sent</option>
-                  <option value="paid">Paid</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-                <svg className="pointer-events-none absolute right-2.5 h-3 w-3 text-muted-foreground" viewBox="0 0 12 12" fill="none">
-                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
+              <StatusDropdown
+                value={invoice.status}
+                onChange={(status) => updateStatus.mutate({ id: invoice.invoice_id, status: status as InvoiceStatus })}
+                options={INVOICE_STATUS_OPTIONS}
+                disabled={updateStatus.isPending}
+              />
             )}
 
             <div className="flex items-center gap-3 rounded-full border bg-background p-2 text-sm">
