@@ -20,7 +20,7 @@ export default function Page() {
       {
         onSuccess: (data) => {
           localStorage.setItem('access_token', data.access_token)
-          router.push('/timesheet')
+          router.push('/dashboard')
         },
       }
     )

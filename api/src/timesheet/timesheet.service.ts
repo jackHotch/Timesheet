@@ -40,9 +40,9 @@ export class TimesheetService {
 
   async getEntries(userId: number, year: number, month: number, half: 'first' | 'second') {
     const startDay = half === 'first' ? 1 : 15;
-    const endDay = half === 'first' ? 14 : new Date(year, month + 1, 0).getDate();
-    const startDate = new Date(year, month, startDay).toISOString().split('T')[0];
-    const endDate = new Date(year, month, endDay).toISOString().split('T')[0];
+    const endDay = half === 'first' ? 14 : new Date(year, month, 0).getDate();
+    const startDate = new Date(year, month - 1, startDay).toISOString().split('T')[0];
+    const endDate = new Date(year, month - 1, endDay).toISOString().split('T')[0];
 
     const result = await this.db.query(
       `SELECT project_id AS "projectId",
