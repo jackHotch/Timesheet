@@ -1,7 +1,5 @@
 import { IsIn, IsNumber, IsOptional } from 'class-validator'
-
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
-export type InvoiceHalf = 'first' | 'second';
+import type { InvoiceStatus, InvoiceHalf } from '../../common/types';
 
 export class InvoiceQueryDto {
   @IsOptional()
