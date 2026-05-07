@@ -18,7 +18,7 @@ export class InvoicesService {
     }
 
     if (query?.month !== undefined) {
-      params.push(query.month + 1); 
+      params.push(query.month);
       conditions.push(`ph.month = $${params.length}`);
     }
 
@@ -53,7 +53,7 @@ export class InvoicesService {
       grouped AS (
         SELECT
           ph.year,
-          (ph.month - 1) AS month,
+          ph.month AS month,
           ph.period,
           inv.id AS invoice_id,
           inv.status,

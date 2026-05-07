@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useHourlyRate } from '@/hooks/use-hourly-rate'
 import { SummaryCard } from '@/components/timesheet/summary-card'
-import { useInvoiceForPeriod, useUpdateInvoiceStatus, type InvoiceStatus } from '@/hooks/use-invoice'
+import { useInvoicesForPeriod, useUpdateInvoiceStatus, type InvoiceStatus } from '@/hooks/use-invoice'
 import {
   useProjects,
   useTimesheetEntries,
@@ -91,10 +91,10 @@ const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 function getWeekdays(year: number, month: number, half: 'first' | 'second'): Date[] {
   const start = half === 'first' ? 1 : 15
-  const end = half === 'first' ? 14 : new Date(year, month + 1, 0).getDate()
+  const end = half === 'first' ? 14 : new Date(year, month, 0).getDate()
   const days: Date[] = []
   for (let d = start; d <= end; d++) {
-    const date = new Date(year, month, d)
+    const date = new Date(year, month - 1, d)
     const dow = date.getDay()
     if (dow >= 1 && dow <= 5) days.push(date)
   }
@@ -103,8 +103,8 @@ function getWeekdays(year: number, month: number, half: 'first' | 'second'): Dat
 
 function getPeriodLabel(year: number, month: number, half: 'first' | 'second'): string {
   const startDay = half === 'first' ? 1 : 15
-  const endDay = half === 'first' ? 14 : new Date(year, month + 1, 0).getDate()
-  return `${MONTH_SHORT[month]} ${startDay}–${endDay}, ${year}`
+  const endDay = half === 'first' ? 14 : new Date(year, month, 0).getDate()
+  return `${MONTH_SHORT[month - 1]} ${startDay}–${endDay}, ${year}`
 }
 
 function navigatePeriod(p: Period, dir: 1 | -1): Period {
@@ -112,16 +112,16 @@ function navigatePeriod(p: Period, dir: 1 | -1): Period {
   if (dir === 1) {
     if (half === 'first') return { year, month, half: 'second' }
     month += 1
-    if (month > 11) {
-      month = 0
+    if (month > 12) {
+      month = 1
       year += 1
     }
     return { year, month, half: 'first' }
   } else {
     if (half === 'second') return { year, month, half: 'first' }
     month -= 1
-    if (month < 0) {
-      month = 11
+    if (month < 1) {
+      month = 12
       year -= 1
     }
     return { year, month, half: 'second' }
@@ -132,7 +132,7 @@ function getCurrentPeriod(): Period {
   const now = new Date()
   return {
     year: now.getFullYear(),
-    month: now.getMonth(),
+    month: now.getMonth() + 1,
     half: now.getDate() <= 14 ? 'first' : 'second',
   }
 }
@@ -162,7 +162,8 @@ export default function TimesheetPage() {
 
   const [period, setPeriod] = useState<Period>(getCurrentPeriod)
 
-  const { data: invoice } = useInvoiceForPeriod(period)
+  const { data } = useInvoicesForPeriod(period)
+  const invoice = data?.[0]
   const updateStatus = useUpdateInvoiceStatus(period)
   const [newProject, setNewProject] = useState('')
   const [activatedProjectIds, setActivatedProjectIds] = useState<Set<string>>(new Set())
@@ -279,6 +280,8 @@ export default function TimesheetPage() {
     deleteProject.mutate(id)
   }
 
+  console.log(invoice);
+
   return (
     <div className="min-h-screen p-8">
       <div className="mb-8">
@@ -289,7 +292,7 @@ export default function TimesheetPage() {
               {saving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {MONTH_NAMES[period.month]} {period.year} · {period.half === 'first' ? 'First half' : 'Second half'}
+              {MONTH_NAMES[period.month - 1]} {period.year} · {period.half === 'first' ? 'First half' : 'Second half'}
             </p>
           </div>
 
@@ -306,7 +309,7 @@ export default function TimesheetPage() {
                 <select
                   value={invoice.status}
                   disabled={updateStatus.isPending}
-                  onChange={(e) => updateStatus.mutate({ id: invoice.id, status: e.target.value as InvoiceStatus })}
+                  onChange={(e) => updateStatus.mutate({ id: invoice.invoice_id, status: e.target.value as InvoiceStatus })}
                   className={cn(
                     "h-9 appearance-none rounded-full border border-border bg-background pl-7 pr-7 text-sm font-medium outline-none transition-colors hover:bg-accent cursor-pointer disabled:opacity-50",
                     invoice.status === 'draft' && 'text-muted-foreground',

@@ -2,9 +2,13 @@
 
 import { useState } from "react"
 import { YearPicker } from "@/components/ui/year-picker"
+import { useInvoicesForPeriod } from "@/hooks/use-invoice"
+
 
 function Invoices() {
   const [year, setYear] = useState<string>(String(new Date().getFullYear()))
+
+  const { data: invoices } = useInvoicesForPeriod({ year: Number(year) })
 
   return (
     <div className="min-h-screen p-8 flex flex-col gap-4">
