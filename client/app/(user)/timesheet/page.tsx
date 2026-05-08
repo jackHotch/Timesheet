@@ -8,7 +8,7 @@ import { StatusDropdown } from '@/components/ui/status-dropdown'
 import { cn } from '@/lib/utils'
 import { useHourlyRate } from '@/hooks/use-hourly-rate'
 import { SummaryCard } from '@/components/timesheet/summary-card'
-import { useInvoicesForPeriod, useUpdateInvoiceStatus, INVOICE_STATUS_OPTIONS, type InvoiceStatus } from '@/hooks/use-invoice'
+import { useInvoicesForPeriod, useUpdateInvoiceStatus } from '@/hooks/use-invoice'
 import {
   useProjects,
   useTimesheetEntries,
@@ -17,6 +17,8 @@ import {
   useUpsertEntry,
   type Entries,
 } from '@/hooks/use-timesheet'
+import { INVOICE_STATUS_OPTIONS } from '@/lib/constants'
+import { InvoiceStatus } from '@/lib/types'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
