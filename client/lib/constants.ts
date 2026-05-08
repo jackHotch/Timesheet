@@ -22,3 +22,5 @@ export const INVOICE_STATUS_OPTIONS: StatusOption[] = [
     darkDotColor: '#f87171', darkBgColor: '#3a1a1a', darkTextColor: '#f07070',
   },
 ]
+
+export const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
