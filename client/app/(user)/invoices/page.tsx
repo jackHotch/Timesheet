@@ -7,6 +7,7 @@ import { InvoiceChart } from "@/components/invoices/invoice-chart"
 import { TotalsCard } from "@/components/invoices/totals-card"
 import { FilterTabs, type FilterOption } from "@/components/common/filters"
 import { InvoiceStatus } from "@/lib/types"
+import { InvoiceCard } from "@/components/invoices/invoice-card"
 
 type StatusFilter = 'all' | InvoiceStatus
 
@@ -47,7 +48,7 @@ function Invoices() {
       </div>
 
       <div className="flex gap-4">
-        <div className="flex flex-2 card" style={{ minHeight: '180px' }}>
+        <div className="flex flex-2 card min-h-[180px]">
           <InvoiceChart invoices={invoices} year={year} />
         </div>
 
@@ -66,6 +67,14 @@ function Invoices() {
           value={statusFilter}
           onChange={setStatusFilter}
         />
+      </div>
+
+      <div>
+        {invoices?.map((invoice, key) => {
+          return (
+            <InvoiceCard key={key} invoice={invoice} />
+          )
+        })}
       </div>
     </div>
   )
