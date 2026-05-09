@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { Period } from '@/lib/types'
 
 export type Project = {
   id: string
@@ -15,11 +16,6 @@ export type EntryRow = {
 
 export type Entries = Record<string, Record<string, number>>
 
-type Period = {
-  year: number
-  month: number
-  half: 'first' | 'second'
-}
 
 function entriesQueryKey(period: Period) {
   return ['timesheet', 'entries', period.year, period.month, period.half]

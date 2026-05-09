@@ -17,16 +17,7 @@ import {
   useUpsertEntry,
   type Entries,
 } from '@/hooks/use-timesheet'
-import { INVOICE_STATUS_OPTIONS } from '@/lib/constants'
-import { InvoiceStatus } from '@/lib/types'
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type Period = {
-  year: number
-  month: number
-  half: 'first' | 'second'
-}
+import { InvoiceStatus, Period } from '@/lib/types'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -92,9 +83,11 @@ const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getWeekdays(year: number, month: number, half: 'first' | 'second'): Date[] {
-  const start = half === 'first' ? 1 : 15
-  const end = half === 'first' ? 14 : new Date(year, month, 0).getDate()
+type FullPeriod = Required<Period>
+
+function getWeekdays(year: number, month: number, half: FullPeriod['half']): Date[] {
+  const start = half === 'FIRST_HALF' ? 1 : 15
+  const end = half === 'FIRST_HALF' ? 14 : new Date(year, month, 0).getDate()
   const days: Date[] = []
   for (let d = start; d <= end; d++) {
     const date = new Date(year, month - 1, d)
@@ -104,43 +97,43 @@ function getWeekdays(year: number, month: number, half: 'first' | 'second'): Dat
   return days
 }
 
-function getPeriodLabel(year: number, month: number, half: 'first' | 'second'): string {
-  const startDay = half === 'first' ? 1 : 15
-  const endDay = half === 'first' ? 14 : new Date(year, month, 0).getDate()
+function getPeriodLabel(year: number, month: number, half: FullPeriod['half']): string {
+  const startDay = half === 'FIRST_HALF' ? 1 : 15
+  const endDay = half === 'FIRST_HALF' ? 14 : new Date(year, month, 0).getDate()
   return `${MONTH_SHORT[month - 1]} ${startDay}–${endDay}, ${year}`
 }
 
-function navigatePeriod(p: Period, dir: 1 | -1): Period {
+function navigatePeriod(p: FullPeriod, dir: 1 | -1): FullPeriod {
   let { year, month, half } = p
   if (dir === 1) {
-    if (half === 'first') return { year, month, half: 'second' }
+    if (half === 'FIRST_HALF') return { year, month, half: 'SECOND_HALF' }
     month += 1
     if (month > 12) {
       month = 1
       year += 1
     }
-    return { year, month, half: 'first' }
+    return { year, month, half: 'FIRST_HALF' }
   } else {
-    if (half === 'second') return { year, month, half: 'first' }
+    if (half === 'SECOND_HALF') return { year, month, half: 'FIRST_HALF' }
     month -= 1
     if (month < 1) {
       month = 12
       year -= 1
     }
-    return { year, month, half: 'second' }
+    return { year, month, half: 'SECOND_HALF' }
   }
 }
 
-function getCurrentPeriod(): Period {
+function getCurrentPeriod(): FullPeriod {
   const now = new Date()
   return {
     year: now.getFullYear(),
     month: now.getMonth() + 1,
-    half: now.getDate() <= 14 ? 'first' : 'second',
+    half: now.getDate() <= 14 ? 'FIRST_HALF' : 'SECOND_HALF',
   }
 }
 
-function isCurrentPeriod(p: Period): boolean {
+function isCurrentPeriod(p: FullPeriod): boolean {
   const c = getCurrentPeriod()
   return p.year === c.year && p.month === c.month && p.half === c.half
 }
@@ -163,7 +156,7 @@ export default function TimesheetPage() {
   const { data: rateData } = useHourlyRate()
   const HOURLY_RATE = rateData?.hourly_rate ?? 0
 
-  const [period, setPeriod] = useState<Period>(getCurrentPeriod)
+  const [period, setPeriod] = useState<FullPeriod>(getCurrentPeriod)
 
   const { data } = useInvoicesForPeriod(period)
   const invoice = data?.[0]
@@ -295,7 +288,7 @@ export default function TimesheetPage() {
               {saving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {MONTH_NAMES[period.month - 1]} {period.year} · {period.half === 'first' ? 'First half' : 'Second half'}
+              {MONTH_NAMES[period.month - 1]} {period.year} · {period.half === 'FIRST_HALF' ? 'First half' : 'Second half'}
             </p>
           </div>
 
@@ -304,7 +297,6 @@ export default function TimesheetPage() {
               <StatusDropdown
                 value={invoice.status}
                 onChange={(status) => updateStatus.mutate({ id: invoice.invoice_id, status: status as InvoiceStatus })}
-                options={INVOICE_STATUS_OPTIONS}
                 disabled={updateStatus.isPending}
               />
             )}

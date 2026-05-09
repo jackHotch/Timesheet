@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { INVOICE_STATUS_OPTIONS as options } from '@/lib/constants'
 
 export type StatusOption = {
   value: string
@@ -18,7 +19,6 @@ export type StatusOption = {
 interface StatusDropdownProps {
   value: string
   onChange: (value: string) => void
-  options: StatusOption[]
   disabled?: boolean
   className?: string
 }
@@ -35,7 +35,7 @@ function useDarkMode(): boolean {
   return dark
 }
 
-function StatusDropdown({ value, onChange, options, disabled, className }: StatusDropdownProps) {
+function StatusDropdown({ value, onChange, disabled, className }: StatusDropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const dark = useDarkMode()
