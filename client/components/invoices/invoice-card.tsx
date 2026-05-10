@@ -59,9 +59,8 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
         </div>
 
         <div className="flex gap-1">
-          {invoice.files.some(f => f.fileType === 'invoice') && <FileText size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" />}
-          {invoice.files.some(f => f.fileType === 'summary') && <FileSpreadsheet size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" />}
-          <Ellipsis size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" />
+          {invoice.files.some(f => f.fileType === 'invoice') && <span title="Invoice"><FileText size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" /></span>}
+          {invoice.files.some(f => f.fileType === 'summary') && <span title="Summary"><FileSpreadsheet size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" /></span>}
         </div>
       </div>
     </div>
