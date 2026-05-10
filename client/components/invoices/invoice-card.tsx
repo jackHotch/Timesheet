@@ -1,6 +1,9 @@
-import { Invoice, InvoiceStatus } from "@/lib/types"
+import { Half, Invoice, InvoiceStatus } from "@/lib/types"
 import { StatusDropdown } from "../ui/status-dropdown"
 import { useUpdateInvoiceStatus } from '@/hooks/use-invoice'
+import { formatCurrency } from "@/lib/utils"
+import { PROJECT_COLORS } from "@/lib/constants"
+import { Ellipsis, FileSpreadsheet, FileText } from "lucide-react"
 
 interface InvoiceCardProps {
   invoice: Invoice
@@ -13,15 +16,48 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
     half: invoice.period,
   })
 
+  function getPeriodDisplayValue(month: number, half: Half): string {
+    const monthName = new Date(0, month - 1).toLocaleString('default', { month: 'short' })
+    const lastDay = new Date(invoice.year, month, 0).getDate()
+    return `${monthName} ${half === Half.FIRST_HALF ? '1-14' : `15-${lastDay}`}, ${invoice.year}`
+  }
+
 
   return (
-    <div className="card">
+    <div className="card flex flex-col gap-2 cursor-pointer hover:border-ring/50 hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex items-center justify-between">
-        <span>{invoice.month}</span>
+        <span className="text-sm font-semibold">{getPeriodDisplayValue(invoice.month, invoice.period)}</span>
         <StatusDropdown 
-          value={invoice.status} 
+          value={invoice.status}
           onChange={(status) => updateStatus.mutate({ id: invoice.invoice_id, status: status as InvoiceStatus })} 
         />
+      </div>
+
+      <div>
+        <p className="text-2xl font-bold">
+          {formatCurrency(Number(invoice.total_amount))}
+        </p>
+
+        <span className="text-sm">{invoice.total_hours} hours · {invoice.projects.length} projects</span>
+      </div>
+
+      <hr />
+
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          {invoice.projects.map((project, key) => {
+            const color = PROJECT_COLORS[project.colorIndex % PROJECT_COLORS.length]
+            return (
+              <span key={key} className="w-3 h-3 rounded-xs" style={{ backgroundColor: color.dot }} />
+            )
+          })}
+        </div>
+
+        <div className="flex gap-1">
+          {invoice.files.some(f => f.fileType === 'invoice') && <FileText size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" />}
+          {invoice.files.some(f => f.fileType === 'summary') && <FileSpreadsheet size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" />}
+          <Ellipsis size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" />
+        </div>
       </div>
     </div>
   )

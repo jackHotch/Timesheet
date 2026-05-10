@@ -17,77 +17,14 @@ import {
   useUpsertEntry,
   type Entries,
 } from '@/hooks/use-timesheet'
-import { InvoiceStatus, Period } from '@/lib/types'
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const PROJECT_COLORS = [
-  {
-    dot: '#6366f1',
-    header: 'text-indigo-600',
-    badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  },
-  {
-    dot: '#22c55e',
-    header: 'text-green-600',
-    badge: 'bg-green-50 text-green-700 border-green-200',
-  },
-  {
-    dot: '#f97316',
-    header: 'text-orange-600',
-    badge: 'bg-orange-50 text-orange-700 border-orange-200',
-  },
-  {
-    dot: '#0ea5e9',
-    header: 'text-sky-600',
-    badge: 'bg-sky-50 text-sky-700 border-sky-200',
-  },
-  {
-    dot: '#ec4899',
-    header: 'text-pink-600',
-    badge: 'bg-pink-50 text-pink-700 border-pink-200',
-  },
-  {
-    dot: '#8b5cf6',
-    header: 'text-violet-600',
-    badge: 'bg-violet-50 text-violet-700 border-violet-200',
-  },
-  {
-    dot: '#14b8a6',
-    header: 'text-teal-600',
-    badge: 'bg-teal-50 text-teal-700 border-teal-200',
-  },
-  {
-    dot: '#f43f5e',
-    header: 'text-rose-600',
-    badge: 'bg-rose-50 text-rose-700 border-rose-200',
-  },
-]
-
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
-const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+import { Half, InvoiceStatus, Period } from '@/lib/types'
+import { MONTH_SHORT, PROJECT_COLORS, MONTH_NAMES, DAY_NAMES } from '@/lib/constants'
 
 type FullPeriod = Required<Period>
 
 function getWeekdays(year: number, month: number, half: FullPeriod['half']): Date[] {
-  const start = half === 'FIRST_HALF' ? 1 : 15
-  const end = half === 'FIRST_HALF' ? 14 : new Date(year, month, 0).getDate()
+  const start = half === Half.FIRST_HALF ? 1 : 15
+  const end = half === Half.FIRST_HALF ? 14 : new Date(year, month, 0).getDate()
   const days: Date[] = []
   for (let d = start; d <= end; d++) {
     const date = new Date(year, month - 1, d)
@@ -98,29 +35,29 @@ function getWeekdays(year: number, month: number, half: FullPeriod['half']): Dat
 }
 
 function getPeriodLabel(year: number, month: number, half: FullPeriod['half']): string {
-  const startDay = half === 'FIRST_HALF' ? 1 : 15
-  const endDay = half === 'FIRST_HALF' ? 14 : new Date(year, month, 0).getDate()
+  const startDay = half === Half.FIRST_HALF ? 1 : 15
+  const endDay = half === Half.FIRST_HALF ? 14 : new Date(year, month, 0).getDate()
   return `${MONTH_SHORT[month - 1]} ${startDay}–${endDay}, ${year}`
 }
 
 function navigatePeriod(p: FullPeriod, dir: 1 | -1): FullPeriod {
   let { year, month, half } = p
   if (dir === 1) {
-    if (half === 'FIRST_HALF') return { year, month, half: 'SECOND_HALF' }
+    if (half === Half.FIRST_HALF) return { year, month, half: Half.SECOND_HALF }
     month += 1
     if (month > 12) {
       month = 1
       year += 1
     }
-    return { year, month, half: 'FIRST_HALF' }
+    return { year, month, half: Half.FIRST_HALF }
   } else {
-    if (half === 'SECOND_HALF') return { year, month, half: 'FIRST_HALF' }
+    if (half === Half.SECOND_HALF) return { year, month, half: Half.FIRST_HALF }
     month -= 1
     if (month < 1) {
       month = 12
       year -= 1
     }
-    return { year, month, half: 'SECOND_HALF' }
+    return { year, month, half: Half.SECOND_HALF }
   }
 }
 
@@ -129,7 +66,7 @@ function getCurrentPeriod(): FullPeriod {
   return {
     year: now.getFullYear(),
     month: now.getMonth() + 1,
-    half: now.getDate() <= 14 ? 'FIRST_HALF' : 'SECOND_HALF',
+    half: now.getDate() <= 14 ? Half.FIRST_HALF : Half.SECOND_HALF,
   }
 }
 
@@ -288,7 +225,7 @@ export default function TimesheetPage() {
               {saving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {MONTH_NAMES[period.month - 1]} {period.year} · {period.half === 'FIRST_HALF' ? 'First half' : 'Second half'}
+              {MONTH_NAMES[period.month - 1]} {period.year} · {period.half === Half.FIRST_HALF ? 'First half' : 'Second half'}
             </p>
           </div>
 

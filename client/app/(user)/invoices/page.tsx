@@ -69,12 +69,10 @@ function Invoices() {
         />
       </div>
 
-      <div>
-        {invoices?.map((invoice, key) => {
-          return (
-            <InvoiceCard key={key} invoice={invoice} />
-          )
-        })}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {invoices?.map((invoice, key) => (
+          <InvoiceCard key={key} invoice={invoice} />
+        ))}
       </div>
     </div>
   )

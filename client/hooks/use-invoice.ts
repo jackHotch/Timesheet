@@ -24,10 +24,8 @@ export function useUpdateInvoiceStatus(period: Period) {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: InvoiceStatus }) =>
       api.patch(`/invoices/${id}`, { status }).then((r) => r.data),
-    onSuccess: (data) => {
-      queryClient.setQueryData<Invoice[] | null>(invoiceQueryKey(period), (old) =>
-        old ? old.map((inv) => inv.invoice_id === data.id ? { ...inv, status: data.status } : inv) : old
-      )
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoice', period.year] })
     },
   })
 }

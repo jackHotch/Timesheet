@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { TimesheetService } from './timesheet.service';
 import { User } from '../auth/user.decorator';
+import { Half } from '../common/types';
 
 @Controller('timesheet')
 export class TimesheetController {
@@ -38,7 +39,7 @@ export class TimesheetController {
     @User() userId: number,
     @Query('year') year: string,
     @Query('month') month: string,
-    @Query('half') half: 'first' | 'second',
+    @Query('half') half: Half,
   ) {
     return this.timesheetService.getEntries(userId, Number(year), Number(month), half);
   }
