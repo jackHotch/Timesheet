@@ -40,15 +40,16 @@ export function useProjects() {
   })
 }
 
-export function useTimesheetEntries(period: Period) {
+export function useTimesheetEntries(period: Period | null) {
   return useQuery<Entries>({
-    queryKey: entriesQueryKey(period),
+    queryKey: entriesQueryKey(period ?? {}),
     queryFn: () =>
       api
         .get('/timesheet/entries', {
-          params: { year: period.year, month: period.month, half: period.half },
+          params: { year: period!.year, month: period!.month, half: period!.half },
         })
         .then((r) => rowsToEntries(r.data)),
+    enabled: period !== null,
     staleTime: 60_000,
   })
 }

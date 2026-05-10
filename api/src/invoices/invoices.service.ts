@@ -89,6 +89,14 @@ export class InvoicesService {
     return result.rows;
   }
 
+  async getInvoiceById(userId: number, invoiceId: string) {
+    const result = await this.db.query(
+      `SELECT year, month, period FROM invoices WHERE id = $1 AND user_id = $2`,
+      [invoiceId, userId],
+    );
+    return result.rows[0] ?? null;
+  }
+
   async updateInvoice(userId: number, invoiceId: string, body: UpdateInvoiceDto) {
     const columnMap: Record<keyof UpdateInvoiceDto, string> = {
       status: 'status',

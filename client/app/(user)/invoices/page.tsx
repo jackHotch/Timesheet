@@ -28,6 +28,10 @@ function Invoices() {
     { label: 'Overdue', value: 'overdue', count: countByStatus('overdue') },
   ]
 
+  const filteredInvoices = statusFilter === 'all'
+    ? invoices
+    : invoices?.filter((inv) => inv.status === statusFilter)
+
   const totalEarned = invoices?.reduce((sum, inv) => sum + parseFloat(inv.total_amount), 0) ?? 0
   const totalHours = invoices?.reduce((sum, inv) => sum + parseFloat(inv.total_hours), 0) ?? 0
   const totalPaid = invoices?.filter((inv) => inv.status === 'paid').reduce((sum, inv) => sum + parseFloat(inv.total_amount), 0) ?? 0
@@ -69,11 +73,13 @@ function Invoices() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {invoices?.map((invoice, key) => (
+      {(filteredInvoices?.length ?? 0) > 0
+          ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {filteredInvoices?.map((invoice, key) => (
           <InvoiceCard key={key} invoice={invoice} />
         ))}
       </div>
+      : <h2 className="text-center text-3xl font-semibold mt-4">No Invoices in {year}</h2>}
     </div>
   )
 }

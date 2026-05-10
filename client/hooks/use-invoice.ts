@@ -1,21 +1,31 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Period, Invoice, InvoiceStatus } from '@/lib/types'
+import { Period, Invoice, InvoiceStatus, Half } from '@/lib/types'
 
 function invoiceQueryKey(period: Period) {
   return ['invoice', period.year, period.month, period.half]
 }
 
-export function useInvoicesForPeriod(period: Period) {
+export function useInvoicesForPeriod(period: Period | null) {
   return useQuery<Invoice[] | null>({
-    queryKey: invoiceQueryKey(period),
+    queryKey: invoiceQueryKey(period ?? {}),
     queryFn: () =>
       api
         .get('/invoices', {
-          params: { year: period.year, month: period.month, half: period.half },
+          params: { year: period!.year, month: period!.month, half: period!.half },
         })
         .then((r) => r.data),
+    enabled: period !== null,
     staleTime: 30_000,
+  })
+}
+
+export function useInvoiceById(id: string | null) {
+  return useQuery<{ year: number; month: number; period: Half } | null>({
+    queryKey: ['invoice', 'by-id', id],
+    queryFn: () => api.get(`/invoices/${id}`).then((r) => r.data),
+    enabled: !!id,
+    staleTime: 60_000,
   })
 }
 
