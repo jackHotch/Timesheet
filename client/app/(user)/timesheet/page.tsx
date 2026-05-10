@@ -38,7 +38,7 @@ function getWeekdays(year: number, month: number, half: FullPeriod['half']): Dat
 function getPeriodLabel(year: number, month: number, half: FullPeriod['half']): string {
   const startDay = half === Half.FIRST_HALF ? 1 : 15
   const endDay = half === Half.FIRST_HALF ? 14 : new Date(year, month, 0).getDate()
-  return `${MONTH_SHORT[month - 1]} ${startDay}–${endDay}, ${year}`
+  return `${MONTH_SHORT[month - 1]} ${startDay}-${endDay}, ${year}`
 }
 
 function navigatePeriod(p: FullPeriod, dir: 1 | -1): FullPeriod {
@@ -331,7 +331,7 @@ export default function TimesheetPage() {
                 <span
                   key={project.id}
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium',
+                    'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium',
                     color.badge
                   )}
                 >
