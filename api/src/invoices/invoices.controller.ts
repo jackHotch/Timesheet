@@ -13,6 +13,11 @@ export class InvoicesController {
     return this.invoicesService.getInvoices(userId, query);
   }
 
+  @Get(':id')
+  getInvoiceById(@User() userId: number, @Param('id') invoiceId: string) {
+    return this.invoicesService.getInvoiceById(userId, invoiceId);
+  }
+
   @Patch('/:id')
   updateInvoices(@User() userId: number, @Param('id') invoiceId: string, @Body() body: UpdateInvoiceDto) {
     return this.invoicesService.updateInvoice(userId, invoiceId, body)

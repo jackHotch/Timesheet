@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +9,7 @@ import { StatusDropdown } from '@/components/ui/status-dropdown'
 import { cn } from '@/lib/utils'
 import { useHourlyRate } from '@/hooks/use-hourly-rate'
 import { SummaryCard } from '@/components/timesheet/summary-card'
-import { useInvoicesForPeriod, useUpdateInvoiceStatus } from '@/hooks/use-invoice'
+import { useInvoicesForPeriod, useUpdateInvoiceStatus, useInvoiceById } from '@/hooks/use-invoice'
 import {
   useProjects,
   useTimesheetEntries,
@@ -90,14 +91,37 @@ function isoDate(date: Date): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function TimesheetPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // Capture the UUID present in the URL on initial mount
+  const [initialUrlId] = useState(() => searchParams.get('id'))
+
+  // Fetch that invoice to derive its period (year/month/half)
+  const { data: invoiceByUrl, isLoading: loadingFromUrl } = useInvoiceById(initialUrlId)
+
+  // Period is null while we wait to resolve it from the URL UUID
+  const [period, setPeriod] = useState<FullPeriod | null>(() =>
+    initialUrlId ? null : getCurrentPeriod()
+  )
+
+  // Once the URL invoice resolves, set the period (or fall back to today)
+  useEffect(() => {
+    if (period !== null || loadingFromUrl) return
+    setPeriod(
+      invoiceByUrl
+        ? { year: invoiceByUrl.year, month: invoiceByUrl.month, half: invoiceByUrl.period }
+        : getCurrentPeriod()
+    )
+  }, [invoiceByUrl, loadingFromUrl, period])
+
   const { data: rateData } = useHourlyRate()
   const HOURLY_RATE = rateData?.hourly_rate ?? 0
 
-  const [period, setPeriod] = useState<FullPeriod>(getCurrentPeriod)
-
   const { data } = useInvoicesForPeriod(period)
   const invoice = data?.[0]
-  const updateStatus = useUpdateInvoiceStatus(period)
+  const updateStatus = useUpdateInvoiceStatus(period ?? getCurrentPeriod())
   const [newProject, setNewProject] = useState('')
   const [activatedProjectIds, setActivatedProjectIds] = useState<Set<string>>(new Set())
 
@@ -121,7 +145,7 @@ export default function TimesheetPage() {
 
   const createProject = useCreateProject()
   const deleteProject = useDeleteProject()
-  const upsertEntry = useUpsertEntry(period)
+  const upsertEntry = useUpsertEntry(period ?? getCurrentPeriod())
 
   const saving = upsertEntry.isPending || createProject.isPending
 
@@ -129,13 +153,23 @@ export default function TimesheetPage() {
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   function changePeriod(dir: 1 | -1) {
-    setPeriod((p) => navigatePeriod(p, dir))
+    setPeriod((p) => navigatePeriod(p!, dir))
     setEntryOverrides({})
     setActivatedProjectIds(new Set())
   }
 
-  const days = useMemo(() => getWeekdays(period.year, period.month, period.half), [period])
-  const periodLabel = useMemo(() => getPeriodLabel(period.year, period.month, period.half), [period])
+  // Keep the URL in sync with the active period's invoice UUID
+  useEffect(() => {
+    if (!period) return
+    if (invoice?.invoice_id) {
+      router.replace(`${pathname}?id=${invoice.invoice_id}`, { scroll: false })
+    } else {
+      router.replace(pathname, { scroll: false })
+    }
+  }, [invoice?.invoice_id, period, pathname, router])
+
+  const days = useMemo(() => period ? getWeekdays(period.year, period.month, period.half) : [], [period])
+  const periodLabel = useMemo(() => period ? getPeriodLabel(period.year, period.month, period.half) : '', [period])
 
   // Only show projects that are relevant to this period: Administration always, plus any
   // with logged entries or explicitly added by the user this session.
@@ -213,7 +247,13 @@ export default function TimesheetPage() {
     deleteProject.mutate(id)
   }
 
-  console.log(invoice);
+  if (!period) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen p-8">

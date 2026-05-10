@@ -4,12 +4,14 @@ import { useUpdateInvoiceStatus } from '@/hooks/use-invoice'
 import { formatCurrency } from "@/lib/utils"
 import { PROJECT_COLORS } from "@/lib/constants"
 import { Ellipsis, FileSpreadsheet, FileText } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface InvoiceCardProps {
   invoice: Invoice
 }
 
 export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
+  const router = useRouter()
   const updateStatus = useUpdateInvoiceStatus({
     year: invoice.year,
     month: invoice.month,
@@ -22,9 +24,12 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
     return `${monthName} ${half === Half.FIRST_HALF ? '1-14' : `15-${lastDay}`}, ${invoice.year}`
   }
 
+  function handleClick() {
+    router.push(`/timesheet?id=${invoice.invoice_id}`)
+  }
 
   return (
-    <div className="card flex flex-col gap-2 cursor-pointer hover:border-ring/50 hover:-translate-y-0.5 hover:shadow-lg">
+    <div onClick={handleClick} className="card flex flex-col gap-2 cursor-pointer hover:border-ring/50 hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">{getPeriodDisplayValue(invoice.month, invoice.period)}</span>
         <StatusDropdown 
