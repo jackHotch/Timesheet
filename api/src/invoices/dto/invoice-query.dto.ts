@@ -1,5 +1,6 @@
 import { IsIn, IsNumber, IsOptional } from 'class-validator'
-import type { InvoiceStatus, InvoiceHalf } from '../../common/types';
+import type { InvoiceStatus } from '../../common/types';
+import { Half } from '../../common/types';
 
 export class InvoiceQueryDto {
   @IsOptional()
@@ -15,6 +16,6 @@ export class InvoiceQueryDto {
   month?: number;
 
   @IsOptional()
-  @IsIn(['first', 'second'] satisfies InvoiceHalf[])
-  half?: InvoiceHalf;
+  @IsIn(Object.values(Half))
+  half?: Half;
 }

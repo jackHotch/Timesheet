@@ -1,12 +1,12 @@
-import { MONTH_LABELS } from "@/lib/constants";
-import { Invoice } from "@/lib/types";
+import { MONTH_SHORT } from "@/lib/constants";
+import { Half, Invoice } from "@/lib/types";
 import { formatCurrency, getInvoiceChartColor } from "@/lib/utils";
 
 export function InvoiceChart({ invoices, year }: { invoices: Invoice[] | null | undefined; year: string }) {
   const slots: (Invoice | undefined)[] = []
   for (let m = 1; m <= 12; m++) {
-    slots.push(invoices?.find((inv) => inv.month === m && inv.period === 'FIRST_HALF'))
-    slots.push(invoices?.find((inv) => inv.month === m && inv.period === 'SECOND_HALF'))
+    slots.push(invoices?.find((inv) => inv.month === m && inv.period === Half.FIRST_HALF))
+    slots.push(invoices?.find((inv) => inv.month === m && inv.period === Half.SECOND_HALF))
   }
 
   const maxAmount = slots.reduce((max, inv) => {
@@ -46,7 +46,7 @@ export function InvoiceChart({ invoices, year }: { invoices: Invoice[] | null | 
           })}
         </div>
         <div className="flex gap-0.75">
-          {MONTH_LABELS.map((label) => (
+          {MONTH_SHORT.map((label) => (
             <div key={label} className="flex flex-2 justify-start pl-px">
               <span className="text-[10px] text-muted-foreground">{label}</span>
             </div>

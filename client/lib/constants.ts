@@ -23,4 +23,65 @@ export const INVOICE_STATUS_OPTIONS: StatusOption[] = [
   },
 ]
 
-export const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+export const PROJECT_COLORS = [
+  {
+    dot: '#6366f1',
+    header: 'text-indigo-600',
+    badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  },
+  {
+    dot: '#22c55e',
+    header: 'text-green-600',
+    badge: 'bg-green-50 text-green-700 border-green-200',
+  },
+  {
+    dot: '#f97316',
+    header: 'text-orange-600',
+    badge: 'bg-orange-50 text-orange-700 border-orange-200',
+  },
+  {
+    dot: '#0ea5e9',
+    header: 'text-sky-600',
+    badge: 'bg-sky-50 text-sky-700 border-sky-200',
+  },
+  {
+    dot: '#ec4899',
+    header: 'text-pink-600',
+    badge: 'bg-pink-50 text-pink-700 border-pink-200',
+  },
+  {
+    dot: '#8b5cf6',
+    header: 'text-violet-600',
+    badge: 'bg-violet-50 text-violet-700 border-violet-200',
+  },
+  {
+    dot: '#14b8a6',
+    header: 'text-teal-600',
+    badge: 'bg-teal-50 text-teal-700 border-teal-200',
+  },
+  {
+    dot: '#f43f5e',
+    header: 'text-rose-600',
+    badge: 'bg-rose-50 text-rose-700 border-rose-200',
+  },
+]
+
+export const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+export const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+export const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']

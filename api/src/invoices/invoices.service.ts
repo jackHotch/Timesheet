@@ -23,7 +23,7 @@ export class InvoicesService {
     }
 
     if (query?.half !== undefined) {
-      params.push(query.half === 'first' ? 'FIRST_HALF' : 'SECOND_HALF');
+      params.push(query.half);
       conditions.push(`ph.period = $${params.length}`);
     }
 

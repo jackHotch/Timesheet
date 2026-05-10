@@ -1,5 +1,10 @@
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue'
 
+export enum Half {
+  FIRST_HALF = 'FIRST_HALF',
+  SECOND_HALF = 'SECOND_HALF',
+}
+
 export type InvoiceFile = {
   id: string
   fileType: string
@@ -16,7 +21,7 @@ export type InvoiceProject = {
 export type Period = {
   year?: number
   month?: number
-  half?: 'FIRST_HALF' | 'SECOND_HALF'
+  half?: Half
 }
 
 export type Invoice = {
@@ -24,7 +29,7 @@ export type Invoice = {
   status: InvoiceStatus
   year: number
   month: number
-  period: NonNullable<Period['half']>
+  period: Half
   total_hours: string
   total_amount: string
   projects: InvoiceProject[]

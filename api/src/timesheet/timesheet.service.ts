@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { Half } from '../common/types';
 
 @Injectable()
 export class TimesheetService {
@@ -38,9 +39,9 @@ export class TimesheetService {
     this.logger.debug(`Deleted project ${projectId} for user ${userId}`);
   }
 
-  async getEntries(userId: number, year: number, month: number, half: 'first' | 'second') {
-    const startDay = half === 'first' ? 1 : 15;
-    const endDay = half === 'first' ? 14 : new Date(year, month, 0).getDate();
+  async getEntries(userId: number, year: number, month: number, half: Half) {
+    const startDay = half === Half.FIRST_HALF ? 1 : 15;
+    const endDay = half === Half.FIRST_HALF ? 14 : new Date(year, month, 0).getDate();
     const startDate = new Date(year, month - 1, startDay).toISOString().split('T')[0];
     const endDate = new Date(year, month - 1, endDay).toISOString().split('T')[0];
 
@@ -58,9 +59,9 @@ export class TimesheetService {
 
   async upsertEntry(userId: number, projectId: string, date: string, hours: number) {
     const [year, month, day] = date.split('-').map(Number);
-    const period = day < 15 ? 'FIRST_HALF' : 'SECOND_HALF';
-    const startDay = period === 'FIRST_HALF' ? 1 : 15;
-    const endDay = period === 'FIRST_HALF' ? 14 : new Date(year, month, 0).getDate();
+    const period = day < 15 ? Half.FIRST_HALF : Half.SECOND_HALF;
+    const startDay = period === Half.FIRST_HALF ? 1 : 15;
+    const endDay = period === Half.FIRST_HALF ? 14 : new Date(year, month, 0).getDate();
     const mm = String(month).padStart(2, '0');
     const periodStart = `${year}-${mm}-${String(startDay).padStart(2, '0')}`;
     const periodEnd = `${year}-${mm}-${String(endDay).padStart(2, '0')}`;
