@@ -3,7 +3,7 @@ import { StatusDropdown } from "../ui/status-dropdown"
 import { useUpdateInvoiceStatus } from '@/hooks/use-invoice'
 import { formatCurrency } from "@/lib/utils"
 import { PROJECT_COLORS } from "@/lib/constants"
-import { Ellipsis, FileSpreadsheet, FileText } from "lucide-react"
+import { FileSpreadsheet, FileText } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface InvoiceCardProps {
@@ -32,10 +32,12 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
     <div onClick={handleClick} className="card flex flex-col gap-2 cursor-pointer hover:border-ring/50 hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">{getPeriodDisplayValue(invoice.month, invoice.period)}</span>
-        <StatusDropdown 
-          value={invoice.status}
-          onChange={(status) => updateStatus.mutate({ id: invoice.invoice_id, status: status as InvoiceStatus })} 
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <StatusDropdown
+            value={invoice.status}
+            onChange={(status) => updateStatus.mutate({ id: invoice.invoice_id, status: status as InvoiceStatus })}
+          />
+        </div>
       </div>
 
       <div>
@@ -58,7 +60,7 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
           })}
         </div>
 
-        <div className="flex gap-1">
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
           {invoice.files.some(f => f.fileType === 'invoice') && <span title="Invoice"><FileText size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" /></span>}
           {invoice.files.some(f => f.fileType === 'summary') && <span title="Summary"><FileSpreadsheet size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" /></span>}
         </div>
