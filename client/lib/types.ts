@@ -35,3 +35,24 @@ export type Invoice = {
   projects: InvoiceProject[]
   files: InvoiceFile[]
 }
+
+export type FileType = 'invoice' | 'summary'
+
+export type FileRecord = {
+  id: string
+  file_name: string
+  file_type: FileType
+  s3_key: string
+  created_at: string
+  invoice_id: string
+  year: number
+  month: number
+  period: Half
+  status: InvoiceStatus
+}
+
+export type FileStats = {
+  total: string
+  invoice_count: string
+  summary_count: string
+}

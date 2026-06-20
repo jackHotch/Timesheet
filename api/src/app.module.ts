@@ -11,6 +11,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { ConfigurationModule } from './configuration/configuration.module';
 import { TimesheetModule } from './timesheet/timesheet.module';
 import { InvoicesModule } from './invoices/invoices.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { InvoicesModule } from './invoices/invoices.module';
     ConfigurationModule,
     TimesheetModule,
     InvoicesModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],
