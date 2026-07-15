@@ -2,14 +2,19 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText, FileCheck2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { StatusDropdown } from '@/components/ui/status-dropdown'
 import { cn } from '@/lib/utils'
 import { useHourlyRate } from '@/hooks/use-hourly-rate'
 import { SummaryCard } from '@/components/timesheet/summary-card'
-import { useInvoicesForPeriod, useUpdateInvoiceStatus, useInvoiceById } from '@/hooks/use-invoice'
+import {
+  useInvoicesForPeriod,
+  useUpdateInvoiceStatus,
+  useInvoiceById,
+  useUploadInvoiceFile,
+} from '@/hooks/use-invoice'
 import {
   useProjects,
   useTimesheetEntries,
@@ -122,6 +127,9 @@ export default function TimesheetPage() {
   const { data } = useInvoicesForPeriod(period)
   const invoice = data?.[0]
   const updateStatus = useUpdateInvoiceStatus(period ?? getCurrentPeriod())
+  const uploadInvoiceFile = useUploadInvoiceFile(period ?? getCurrentPeriod())
+  const invoiceFileInputRef = useRef<HTMLInputElement>(null)
+  const invoicePdf = invoice?.files?.find((f) => f.fileType === 'invoice')
   const [newProject, setNewProject] = useState('')
   const [activatedProjectIds, setActivatedProjectIds] = useState<Set<string>>(new Set())
 
@@ -245,6 +253,13 @@ export default function TimesheetPage() {
 
   function removeProject(id: string) {
     deleteProject.mutate(id)
+  }
+
+  function handleInvoiceFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !invoice?.invoice_id) return
+    uploadInvoiceFile.mutate({ invoiceId: invoice.invoice_id, fileType: 'invoice', file })
   }
 
   if (!period) {
@@ -494,14 +509,54 @@ export default function TimesheetPage() {
           <div className="flex flex-col rounded-xl border border-border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold text-foreground">Documents</h2>
             <div className="flex flex-1 flex-col gap-2">
-              <div className="flex min-h-20 flex-1 cursor-pointer items-center gap-4 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 transition-colors hover:bg-muted/50">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-background shadow-sm">
-                  <Upload className="h-5 w-5 text-muted-foreground" />
+              <input
+                ref={invoiceFileInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleInvoiceFileChange}
+              />
+              <div
+                onClick={() => invoice?.invoice_id && invoiceFileInputRef.current?.click()}
+                className={cn(
+                  'flex min-h-20 flex-1 items-center gap-4 rounded-lg border-2 px-4 transition-colors',
+                  !invoice?.invoice_id
+                    ? 'cursor-not-allowed border-dashed border-border bg-muted/30 opacity-60'
+                    : invoicePdf
+                      ? 'cursor-pointer border-solid border-emerald-300 bg-emerald-50 hover:bg-emerald-100/70 dark:border-emerald-900 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50'
+                      : 'cursor-pointer border-dashed border-border bg-muted/30 hover:bg-muted/50'
+                )}
+              >
+                <div
+                  className={cn(
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border shadow-sm',
+                    invoicePdf
+                      ? 'border-emerald-200 bg-background text-emerald-600 dark:border-emerald-900 dark:text-emerald-400'
+                      : 'border-border bg-background text-muted-foreground'
+                  )}
+                >
+                  {uploadInvoiceFile.isPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : invoicePdf ? (
+                    <FileCheck2 className="h-5 w-5" />
+                  ) : (
+                    <Upload className="h-5 w-5" />
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Upload invoice PDF</p>
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    Drop your generated invoice here, or click to browse.
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    {uploadInvoiceFile.isPending
+                      ? 'Uploading...'
+                      : invoicePdf
+                        ? 'Invoice PDF uploaded'
+                        : 'Upload invoice PDF'}
+                  </p>
+                  <p className="truncate text-xs leading-snug text-muted-foreground">
+                    {invoicePdf
+                      ? invoicePdf.fileName
+                      : invoice?.invoice_id
+                        ? 'Click to upload your invoice'
+                        : 'Log hours this period to enable uploads'}
                   </p>
                 </div>
               </div>

@@ -39,3 +39,30 @@ export function useUpdateInvoiceStatus(period: Period) {
     },
   })
 }
+
+export function useUploadInvoiceFile(period: Period) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      invoiceId,
+      fileType,
+      file,
+    }: {
+      invoiceId: string
+      fileType: 'invoice' | 'summary'
+      file: File
+    }) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('fileType', fileType)
+      return api
+        .post(`/invoices/${invoiceId}/files`, formData, {
+          headers: { 'Content-Type': undefined },
+        })
+        .then((r) => r.data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoice', period.year] })
+    },
+  })
+}

@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { S3Service } from '../aws/s3.service';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 
 @Injectable()
 export class InvoicesService {
 
-  constructor(private db: DatabaseService) {}
+  constructor(
+    private db: DatabaseService,
+    private s3: S3Service,
+  ) {}
 
   async getInvoices(userId: number, query?: InvoiceQueryDto) {
     const conditions: string[] = [];
@@ -123,6 +127,43 @@ export class InvoicesService {
     );
 
     if (result.rows.length === 0) throw new NotFoundException('Invoice not found');
+    return result.rows[0];
+  }
+
+  async uploadFile(
+    userId: number,
+    invoiceId: string,
+    fileType: 'invoice' | 'summary',
+    file: Express.Multer.File,
+  ) {
+    const invoice = await this.db.query(`SELECT id FROM invoices WHERE id = $1 AND user_id = $2`, [
+      invoiceId,
+      userId,
+    ]);
+    if (invoice.rows.length === 0) throw new NotFoundException('Invoice not found');
+
+    const existing = await this.db.query<{ s3_key: string }>(
+      `SELECT s3_key FROM invoice_files WHERE invoice_id = $1 AND file_type = $2`,
+      [invoiceId, fileType],
+    );
+
+    const key = `invoices/${invoiceId}/${fileType}-${Date.now()}-${file.originalname}`;
+    await this.s3.uploadFile(key, file.buffer, file.mimetype);
+
+    const result = await this.db.query(
+      `INSERT INTO invoice_files (invoice_id, file_type, s3_key, file_name)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (invoice_id, file_type)
+       DO UPDATE SET s3_key = EXCLUDED.s3_key, file_name = EXCLUDED.file_name
+       RETURNING id, file_type AS "fileType", file_name AS "fileName", s3_key AS "s3Key"`,
+      [invoiceId, fileType, key, file.originalname],
+    );
+
+    const oldKey = existing.rows[0]?.s3_key;
+    if (oldKey && oldKey !== key) {
+      await this.s3.deleteFile(oldKey);
+    }
+
     return result.rows[0];
   }
 }
