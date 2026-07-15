@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { ThemeSwitcher } from '@/components/layout/theme-switcher'
 
 export const Header = () => {
   const pathname = usePathname()
@@ -13,13 +14,16 @@ export const Header = () => {
   const crumbs = ['Workspace', ...segments]
 
   return (
-    <div className="flex items-center gap-1.5 border border-l-0 border-sidebar-border bg-background p-4 text-sm">
-      {crumbs.map((crumb, i) => (
-        <span key={i} className="flex items-center gap-1.5">
-          {i > 0 && <span className="text-muted-foreground">·</span>}
-          <span className={i < crumbs.length - 1 ? 'text-muted-foreground' : 'text-foreground'}>{crumb}</span>
-        </span>
-      ))}
+    <div className="flex items-center justify-between gap-1.5 border border-l-0 border-sidebar-border bg-background p-4 text-sm">
+      <div className="flex items-center gap-1.5">
+        {crumbs.map((crumb, i) => (
+          <span key={i} className="flex items-center gap-1.5">
+            {i > 0 && <span className="text-muted-foreground">·</span>}
+            <span className={i < crumbs.length - 1 ? 'text-muted-foreground' : 'text-foreground'}>{crumb}</span>
+          </span>
+        ))}
+      </div>
+      <ThemeSwitcher />
     </div>
   )
 }

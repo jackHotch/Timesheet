@@ -98,9 +98,6 @@ export function ActiveInvoiceCard({ invoice }: ActiveInvoiceCardProps) {
         >
           Open timesheet
         </Button>
-        <Button variant="outline" size="icon-lg" onClick={(e) => e.stopPropagation()}>
-          <Share2 />
-        </Button>
       </div>
     </div>
   )
