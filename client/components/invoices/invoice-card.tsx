@@ -1,6 +1,7 @@
 import { Half, Invoice, InvoiceStatus } from "@/lib/types"
 import { StatusDropdown } from "../ui/status-dropdown"
 import { useUpdateInvoiceStatus } from '@/hooks/use-invoice'
+import { fetchFileUrl } from '@/hooks/use-files'
 import { formatCurrency } from "@/lib/utils"
 import { PROJECT_COLORS } from "@/lib/constants"
 import { FileSpreadsheet, FileText } from "lucide-react"
@@ -27,6 +28,13 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
   function handleClick() {
     router.push(`/timesheet?id=${invoice.invoice_id}`)
   }
+
+  async function handleFileClick(fileId: string) {
+    const url = await fetchFileUrl(fileId, false)
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const invoiceFile = invoice.files.find(f => f.fileType === 'invoice')
 
   return (
     <div onClick={handleClick} className="card flex flex-col gap-2 cursor-pointer hover:border-ring/50 hover:-translate-y-0.5 hover:shadow-lg">
@@ -61,7 +69,11 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
         </div>
 
         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-          {invoice.files.some(f => f.fileType === 'invoice') && <span title="Invoice"><FileText size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" /></span>}
+          {invoiceFile && (
+            <span title="Invoice" onClick={() => handleFileClick(invoiceFile.id)}>
+              <FileText size={28} className="p-1.5 hover:bg-ring/30 rounded-sm cursor-pointer" />
+            </span>
+          )}
           {invoice.files.some(f => f.fileType === 'summary') && <span title="Summary"><FileSpreadsheet size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" /></span>}
         </div>
       </div>

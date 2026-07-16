@@ -27,18 +27,11 @@ services:
     volumes:
       - ./api:/app
       - /app/node_modules
+    env_file:
+      - ./api/.env
     environment:
       - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USER=${DATABASE_USER}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
-      - DATABASE_NAME=${DATABASE_NAME}
-      - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
-      - AWS_REGION=${AWS_REGION}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
     depends_on:
       postgres:
         condition: service_healthy

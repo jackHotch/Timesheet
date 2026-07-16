@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { StatusDropdown } from '@/components/ui/status-dropdown'
 import { cn } from '@/lib/utils'
 import { useHourlyRate } from '@/hooks/use-hourly-rate'
+import { fetchFileUrl } from '@/hooks/use-files'
 import { SummaryCard } from '@/components/timesheet/summary-card'
 import {
   useInvoicesForPeriod,
@@ -260,6 +261,15 @@ export default function TimesheetPage() {
     e.target.value = ''
     if (!file || !invoice?.invoice_id) return
     uploadInvoiceFile.mutate({ invoiceId: invoice.invoice_id, fileType: 'invoice', file })
+  }
+
+  async function handleInvoiceFileClick() {
+    if (invoicePdf) {
+      const url = await fetchFileUrl(invoicePdf.id, false)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (invoice?.invoice_id) invoiceFileInputRef.current?.click()
   }
 
   if (!period) {
@@ -517,7 +527,7 @@ export default function TimesheetPage() {
                 onChange={handleInvoiceFileChange}
               />
               <div
-                onClick={() => invoice?.invoice_id && invoiceFileInputRef.current?.click()}
+                onClick={handleInvoiceFileClick}
                 className={cn(
                   'flex min-h-20 flex-1 items-center gap-4 rounded-lg border-2 px-4 transition-colors',
                   !invoice?.invoice_id

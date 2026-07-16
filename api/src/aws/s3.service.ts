@@ -42,10 +42,20 @@ export class S3Service {
     );
   }
 
-  async getSignedDownloadUrl(key: string, expiresInSeconds = 3600): Promise<string> {
-    return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.bucket, Key: key }), {
-      expiresIn: expiresInSeconds,
-    });
+  async getSignedDownloadUrl(
+    key: string,
+    responseContentDisposition?: string,
+    expiresInSeconds = 3600,
+  ): Promise<string> {
+    return getSignedUrl(
+      this.client,
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ResponseContentDisposition: responseContentDisposition,
+      }),
+      { expiresIn: expiresInSeconds },
+    );
   }
 
   async deleteFile(key: string): Promise<void> {

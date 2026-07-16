@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useFiles, useFileStats } from '@/hooks/use-files'
+import { useFiles, fetchFileUrl, useDeleteFile } from '@/hooks/use-files'
 import { FilterTabs, type FilterOption } from '@/components/common/filters'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { FileRecord, FileType, Half, InvoiceStatus } from '@/lib/types'
 import { INVOICE_STATUS_OPTIONS, MONTH_SHORT } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { Eye, Download, MoreHorizontal, FileText, FileSpreadsheet, Upload } from 'lucide-react'
+import { Eye, Download, Trash2, FileText, FileSpreadsheet } from 'lucide-react'
 
 type TypeFilter = 'all' | FileType
 
@@ -50,15 +51,6 @@ function TypeBadge({ type }: { type: FileType }) {
   )
 }
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="card flex flex-col gap-1">
-      <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">{label}</p>
-      <p className="text-2xl font-bold tabular-nums">{value}</p>
-    </div>
-  )
-}
-
 export default function FilesPage() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all')
@@ -66,7 +58,8 @@ export default function FilesPage() {
   const [search, setSearch] = useState('')
 
   const { data: files = [] } = useFiles()
-  const { data: stats } = useFileStats()
+  const deleteFile = useDeleteFile()
+  const [fileToDelete, setFileToDelete] = useState<FileRecord | null>(null)
 
   const availableYears = useMemo(() => {
     const years = [...new Set(files.map((f) => f.year))].sort((a, b) => b - a)
@@ -83,6 +76,28 @@ export default function FilesPage() {
     })
   }, [files, typeFilter, statusFilter, yearFilter, search])
 
+  const handleView = async (fileId: string) => {
+    const url = await fetchFileUrl(fileId, false)
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleDownload = async (fileId: string) => {
+    const url = await fetchFileUrl(fileId, true)
+    const link = document.createElement('a')
+    link.href = url
+    link.rel = 'noopener'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!fileToDelete) return
+    deleteFile.mutate(fileToDelete.id, {
+      onSuccess: () => setFileToDelete(null),
+    })
+  }
+
   const typeOptions: FilterOption<TypeFilter>[] = [
     { label: 'All', value: 'all' },
     { label: 'Invoices', value: 'invoice' },
@@ -91,24 +106,9 @@ export default function FilesPage() {
 
   return (
     <div className="min-h-screen p-8 flex flex-col gap-4">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Files</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">All invoice PDFs and summary documents.</p>
-        </div>
-        <button
-          disabled
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground opacity-50 cursor-not-allowed"
-        >
-          <Upload size={15} />
-          Upload file
-        </button>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Files" value={stats ? `${stats.total} of ${stats.total}` : '—'} />
-        <StatCard label="Invoices" value={stats?.invoice_count ?? '—'} />
-        <StatCard label="Summaries" value={stats?.summary_count ?? '—'} />
+      <div className="mb-4">
+        <h1 className="font-heading text-2xl font-bold text-foreground">Files</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">All invoice PDFs and summary documents.</p>
       </div>
 
       <div className="card flex items-center gap-3">
@@ -217,24 +217,24 @@ export default function FilesPage() {
                       <div className="flex items-center gap-1 justify-end">
                         <button
                           title="View"
-                          disabled
+                          onClick={() => handleView(file.id)}
                           className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Eye size={15} />
                         </button>
                         <button
                           title="Download"
-                          disabled
+                          onClick={() => handleDownload(file.id)}
                           className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Download size={15} />
                         </button>
                         <button
-                          title="More"
-                          disabled
-                          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Delete"
+                          onClick={() => setFileToDelete(file)}
+                          className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         >
-                          <MoreHorizontal size={15} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </td>
@@ -245,6 +245,17 @@ export default function FilesPage() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={fileToDelete !== null}
+        onOpenChange={(open) => !open && setFileToDelete(null)}
+        title="Delete file"
+        description={`Are you sure you want to delete "${fileToDelete?.file_name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        loading={deleteFile.isPending}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   )
 }

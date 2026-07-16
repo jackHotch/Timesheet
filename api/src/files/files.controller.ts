@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Query } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { User } from '../auth/user.decorator';
 import { FilesQueryDto } from './dto/files-query.dto';
@@ -15,5 +15,19 @@ export class FilesController {
   @Get('stats')
   getFileStats(@User() userId: number) {
     return this.filesService.getFileStats(userId);
+  }
+
+  @Get(':id/url')
+  getFileUrl(
+    @User() userId: number,
+    @Param('id') id: string,
+    @Query('download') download?: string,
+  ) {
+    return this.filesService.getFileUrl(userId, id, download === 'true');
+  }
+
+  @Delete(':id')
+  deleteFile(@User() userId: number, @Param('id') id: string) {
+    return this.filesService.deleteFile(userId, id);
   }
 }

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { FileRecord, FileStats, FileType, InvoiceStatus } from '@/lib/types'
 
@@ -30,5 +30,22 @@ export function useFileStats() {
     queryKey: ['files', 'stats'],
     queryFn: () => api.get('/files/stats').then((r) => r.data),
     staleTime: 30_000,
+  })
+}
+
+export async function fetchFileUrl(fileId: string, download = false): Promise<string> {
+  const { data } = await api.get<{ url: string }>(`/files/${fileId}/url`, {
+    params: { download },
+  })
+  return data.url
+}
+
+export function useDeleteFile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (fileId: string) => api.delete(`/files/${fileId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+    },
   })
 }
