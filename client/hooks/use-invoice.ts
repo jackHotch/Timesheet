@@ -40,6 +40,16 @@ export function useUpdateInvoiceStatus(period: Period) {
   })
 }
 
+export function useDeleteInvoiceFile(period: Period) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (fileId: string) => api.delete(`/files/${fileId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoice', period.year] })
+    },
+  })
+}
+
 export function useUploadInvoiceFile(period: Period) {
   const queryClient = useQueryClient()
   return useMutation({

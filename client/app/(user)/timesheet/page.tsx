@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText, FileCheck2, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText, FileCheck2, Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { StatusDropdown } from '@/components/ui/status-dropdown'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { cn } from '@/lib/utils'
 import { useHourlyRate } from '@/hooks/use-hourly-rate'
 import { fetchFileUrl } from '@/hooks/use-files'
@@ -15,6 +16,7 @@ import {
   useUpdateInvoiceStatus,
   useInvoiceById,
   useUploadInvoiceFile,
+  useDeleteInvoiceFile,
 } from '@/hooks/use-invoice'
 import {
   useProjects,
@@ -129,8 +131,10 @@ export default function TimesheetPage() {
   const invoice = data?.[0]
   const updateStatus = useUpdateInvoiceStatus(period ?? getCurrentPeriod())
   const uploadInvoiceFile = useUploadInvoiceFile(period ?? getCurrentPeriod())
+  const deleteInvoiceFile = useDeleteInvoiceFile(period ?? getCurrentPeriod())
   const invoiceFileInputRef = useRef<HTMLInputElement>(null)
   const invoicePdf = invoice?.files?.find((f) => f.fileType === 'invoice')
+  const [confirmDeleteFile, setConfirmDeleteFile] = useState(false)
   const [newProject, setNewProject] = useState('')
   const [activatedProjectIds, setActivatedProjectIds] = useState<Set<string>>(new Set())
 
@@ -261,6 +265,13 @@ export default function TimesheetPage() {
     e.target.value = ''
     if (!file || !invoice?.invoice_id) return
     uploadInvoiceFile.mutate({ invoiceId: invoice.invoice_id, fileType: 'invoice', file })
+  }
+
+  function handleDeleteInvoiceFile() {
+    if (!invoicePdf) return
+    deleteInvoiceFile.mutate(invoicePdf.id, {
+      onSuccess: () => setConfirmDeleteFile(false),
+    })
   }
 
   async function handleInvoiceFileClick() {
@@ -569,6 +580,19 @@ export default function TimesheetPage() {
                         : 'Log hours this period to enable uploads'}
                   </p>
                 </div>
+                {invoicePdf && (
+                  <button
+                    type="button"
+                    title="Delete file"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setConfirmDeleteFile(true)
+                    }}
+                    className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-emerald-700/70 transition-colors hover:bg-emerald-200/50 hover:text-emerald-800 dark:text-emerald-400/70 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-300"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               <div className="flex min-h-20 flex-1 cursor-pointer items-center gap-4 rounded-lg border border-border bg-muted/30 px-4 transition-colors hover:bg-muted/50">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-background shadow-sm">
@@ -585,6 +609,17 @@ export default function TimesheetPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteFile}
+        onOpenChange={setConfirmDeleteFile}
+        title="Delete invoice PDF?"
+        description={`This will permanently remove "${invoicePdf?.fileName}" from this invoice.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        loading={deleteInvoiceFile.isPending}
+        onConfirm={handleDeleteInvoiceFile}
+      />
     </div>
   )
 }

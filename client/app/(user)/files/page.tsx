@@ -26,7 +26,7 @@ function StatusBadge({ status }: { status: InvoiceStatus }) {
   if (!option) return null
   return (
     <span
-      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
       style={{ backgroundColor: option.bgColor, color: option.textColor }}
     >
       <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: option.dotColor }} />
