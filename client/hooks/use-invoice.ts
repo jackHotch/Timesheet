@@ -46,6 +46,18 @@ export function useDeleteInvoiceFile(period: Period) {
     mutationFn: (fileId: string) => api.delete(`/files/${fileId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoice', period.year] })
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+    },
+  })
+}
+
+export function useGenerateInvoiceSummary(period: Period) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (invoiceId: string) => api.post(`/invoices/${invoiceId}/summary`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoice', period.year] })
+      queryClient.invalidateQueries({ queryKey: ['files'] })
     },
   })
 }
@@ -73,6 +85,7 @@ export function useUploadInvoiceFile(period: Period) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoice', period.year] })
+      queryClient.invalidateQueries({ queryKey: ['files'] })
     },
   })
 }

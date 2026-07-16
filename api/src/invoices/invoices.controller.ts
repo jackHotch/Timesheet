@@ -35,8 +35,12 @@ export class InvoicesController {
   }
 
   @Patch('/:id')
-  updateInvoices(@User() userId: number, @Param('id') invoiceId: string, @Body() body: UpdateInvoiceDto) {
-    return this.invoicesService.updateInvoice(userId, invoiceId, body)
+  updateInvoices(
+    @User() userId: number,
+    @Param('id') invoiceId: string,
+    @Body() body: UpdateInvoiceDto,
+  ) {
+    return this.invoicesService.updateInvoice(userId, invoiceId, body);
   }
 
   @Post('/:id/files')
@@ -56,6 +60,16 @@ export class InvoicesController {
     if (!INVOICE_FILE_TYPES.includes(fileType as InvoiceFileType)) {
       throw new BadRequestException('Invalid fileType');
     }
-    return this.invoicesService.uploadFile(userId, invoiceId, fileType as InvoiceFileType, file);
+    return this.invoicesService.uploadFile(
+      userId,
+      invoiceId,
+      fileType as InvoiceFileType,
+      file,
+    );
+  }
+
+  @Post('/:id/summary')
+  generateSummary(@User() userId: number, @Param('id') invoiceId: string) {
+    return this.invoicesService.generateSummary(userId, invoiceId);
   }
 }

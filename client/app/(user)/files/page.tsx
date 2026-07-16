@@ -7,9 +7,11 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { FileRecord, FileType, Half, InvoiceStatus } from '@/lib/types'
 import { INVOICE_STATUS_OPTIONS, MONTH_SHORT } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { Eye, Download, Trash2, FileText, FileSpreadsheet } from 'lucide-react'
+import { Eye, Download, Trash2, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react'
 
 type TypeFilter = 'all' | FileType
+type SortKey = 'name' | 'uploaded'
+type SortDir = 'asc' | 'desc'
 
 function getInvoiceDisplayId(year: number, month: number, period: Half): string {
   return `INV-${year}-${String(month).padStart(2, '0')}${period === Half.FIRST_HALF ? '1' : '2'}`
@@ -35,6 +37,32 @@ function StatusBadge({ status }: { status: InvoiceStatus }) {
   )
 }
 
+function SortHeader({
+  label,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  dir: SortDir
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground"
+    >
+      {label}
+      <ChevronDown
+        size={10}
+        className={cn('transition-transform', active ? 'opacity-100' : 'opacity-30', active && dir === 'asc' && 'rotate-180')}
+      />
+    </button>
+  )
+}
+
 function TypeBadge({ type }: { type: FileType }) {
   const isInvoice = type === 'invoice'
   return (
@@ -56,6 +84,8 @@ export default function FilesPage() {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all')
   const [yearFilter, setYearFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const [sortKey, setSortKey] = useState<SortKey>('uploaded')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   const { data: files = [] } = useFiles()
   const deleteFile = useDeleteFile()
@@ -67,14 +97,30 @@ export default function FilesPage() {
   }, [files])
 
   const filtered = useMemo(() => {
-    return files.filter((f: FileRecord) => {
+    const result = files.filter((f: FileRecord) => {
       if (typeFilter !== 'all' && f.file_type !== typeFilter) return false
       if (statusFilter !== 'all' && f.status !== statusFilter) return false
       if (yearFilter !== 'all' && f.year !== Number(yearFilter)) return false
       if (search && !f.file_name.toLowerCase().includes(search.toLowerCase())) return false
       return true
     })
-  }, [files, typeFilter, statusFilter, yearFilter, search])
+
+    const dir = sortDir === 'asc' ? 1 : -1
+    return result.sort((a, b) =>
+      sortKey === 'name'
+        ? a.file_name.localeCompare(b.file_name) * dir
+        : (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * dir
+    )
+  }, [files, typeFilter, statusFilter, yearFilter, search, sortKey, sortDir])
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir(key === 'name' ? 'asc' : 'desc')
+    }
+  }
 
   const handleView = async (fileId: string) => {
     const url = await fetchFileUrl(fileId, false)
@@ -154,15 +200,14 @@ export default function FilesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <th className="px-5 py-3 text-left text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Name</th>
+              <th className="px-5 py-3 text-left text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                <SortHeader label="Name" active={sortKey === 'name'} dir={sortDir} onClick={() => handleSort('name')} />
+              </th>
               <th className="px-5 py-3 text-left text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Type</th>
               <th className="px-5 py-3 text-left text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Invoice</th>
               <th className="px-5 py-3 text-left text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Status</th>
               <th className="px-5 py-3 text-left text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-                <span className="flex items-center gap-1">
-                  Uploaded
-                  <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                </span>
+                <SortHeader label="Uploaded" active={sortKey === 'uploaded'} dir={sortDir} onClick={() => handleSort('uploaded')} />
               </th>
               <th className="px-5 py-3" />
             </tr>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Plus, X, Upload, FileText, FileCheck2, Loader2, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Upload, FileSpreadsheet, FileCheck2, Loader2, Trash2, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { StatusDropdown } from '@/components/ui/status-dropdown'
@@ -17,6 +17,7 @@ import {
   useInvoiceById,
   useUploadInvoiceFile,
   useDeleteInvoiceFile,
+  useGenerateInvoiceSummary,
 } from '@/hooks/use-invoice'
 import {
   useProjects,
@@ -26,7 +27,7 @@ import {
   useUpsertEntry,
   type Entries,
 } from '@/hooks/use-timesheet'
-import { Half, InvoiceStatus, Period } from '@/lib/types'
+import { Half, InvoiceStatus, InvoiceFile, Period } from '@/lib/types'
 import { MONTH_SHORT, PROJECT_COLORS, MONTH_NAMES, DAY_NAMES } from '@/lib/constants'
 
 type FullPeriod = Required<Period>
@@ -132,9 +133,11 @@ export default function TimesheetPage() {
   const updateStatus = useUpdateInvoiceStatus(period ?? getCurrentPeriod())
   const uploadInvoiceFile = useUploadInvoiceFile(period ?? getCurrentPeriod())
   const deleteInvoiceFile = useDeleteInvoiceFile(period ?? getCurrentPeriod())
+  const generateSummary = useGenerateInvoiceSummary(period ?? getCurrentPeriod())
   const invoiceFileInputRef = useRef<HTMLInputElement>(null)
   const invoicePdf = invoice?.files?.find((f) => f.fileType === 'invoice')
-  const [confirmDeleteFile, setConfirmDeleteFile] = useState(false)
+  const summaryPdf = invoice?.files?.find((f) => f.fileType === 'summary')
+  const [fileToDelete, setFileToDelete] = useState<InvoiceFile | null>(null)
   const [newProject, setNewProject] = useState('')
   const [activatedProjectIds, setActivatedProjectIds] = useState<Set<string>>(new Set())
 
@@ -267,10 +270,10 @@ export default function TimesheetPage() {
     uploadInvoiceFile.mutate({ invoiceId: invoice.invoice_id, fileType: 'invoice', file })
   }
 
-  function handleDeleteInvoiceFile() {
-    if (!invoicePdf) return
-    deleteInvoiceFile.mutate(invoicePdf.id, {
-      onSuccess: () => setConfirmDeleteFile(false),
+  function handleConfirmDelete() {
+    if (!fileToDelete) return
+    deleteInvoiceFile.mutate(fileToDelete.id, {
+      onSuccess: () => setFileToDelete(null),
     })
   }
 
@@ -281,6 +284,15 @@ export default function TimesheetPage() {
       return
     }
     if (invoice?.invoice_id) invoiceFileInputRef.current?.click()
+  }
+
+  async function handleSummaryClick() {
+    if (summaryPdf) {
+      const url = await fetchFileUrl(summaryPdf.id, false)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (invoice?.invoice_id) generateSummary.mutate(invoice.invoice_id)
   }
 
   if (!period) {
@@ -537,94 +549,134 @@ export default function TimesheetPage() {
                 className="hidden"
                 onChange={handleInvoiceFileChange}
               />
-              <div
-                onClick={handleInvoiceFileClick}
-                className={cn(
-                  'flex min-h-20 flex-1 items-center gap-4 rounded-lg border-2 px-4 transition-colors',
-                  !invoice?.invoice_id
-                    ? 'cursor-not-allowed border-dashed border-border bg-muted/30 opacity-60'
+              <DocumentSlot
+                icon={Upload}
+                title={
+                  uploadInvoiceFile.isPending
+                    ? 'Uploading...'
                     : invoicePdf
-                      ? 'cursor-pointer border-solid border-emerald-300 bg-emerald-50 hover:bg-emerald-100/70 dark:border-emerald-900 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50'
-                      : 'cursor-pointer border-dashed border-border bg-muted/30 hover:bg-muted/50'
-                )}
-              >
-                <div
-                  className={cn(
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border shadow-sm',
-                    invoicePdf
-                      ? 'border-emerald-200 bg-background text-emerald-600 dark:border-emerald-900 dark:text-emerald-400'
-                      : 'border-border bg-background text-muted-foreground'
-                  )}
-                >
-                  {uploadInvoiceFile.isPending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : invoicePdf ? (
-                    <FileCheck2 className="h-5 w-5" />
-                  ) : (
-                    <Upload className="h-5 w-5" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    {uploadInvoiceFile.isPending
-                      ? 'Uploading...'
-                      : invoicePdf
-                        ? 'Invoice PDF uploaded'
-                        : 'Upload invoice PDF'}
-                  </p>
-                  <p className="truncate text-xs leading-snug text-muted-foreground">
-                    {invoicePdf
-                      ? invoicePdf.fileName
-                      : invoice?.invoice_id
-                        ? 'Click to upload your invoice'
-                        : 'Log hours this period to enable uploads'}
-                  </p>
-                </div>
-                {invoicePdf && (
-                  <button
-                    type="button"
-                    title="Delete file"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setConfirmDeleteFile(true)
-                    }}
-                    className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-emerald-700/70 transition-colors hover:bg-emerald-200/50 hover:text-emerald-800 dark:text-emerald-400/70 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-300"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              <div className="flex min-h-20 flex-1 cursor-pointer items-center gap-4 rounded-lg border border-border bg-muted/30 px-4 transition-colors hover:bg-muted/50">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-background shadow-sm">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Generate PDF Summary</p>
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    Export a full summary of this period as a PDF.
-                  </p>
-                </div>
-              </div>
+                      ? 'Invoice PDF uploaded'
+                      : 'Upload invoice PDF'
+                }
+                subtitle={
+                  invoicePdf
+                    ? invoicePdf.fileName
+                    : invoice?.invoice_id
+                      ? 'Click to upload your invoice'
+                      : 'Log hours this period to enable uploads'
+                }
+                active={!!invoicePdf}
+                loading={uploadInvoiceFile.isPending}
+                disabled={!invoice?.invoice_id}
+                onClick={handleInvoiceFileClick}
+                onDelete={invoicePdf ? () => setFileToDelete(invoicePdf) : undefined}
+              />
+              <DocumentSlot
+                icon={FileSpreadsheet}
+                title={
+                  generateSummary.isPending
+                    ? 'Generating...'
+                    : summaryPdf
+                      ? 'Summary PDF generated'
+                      : 'Generate PDF Summary'
+                }
+                subtitle={
+                  summaryPdf
+                    ? summaryPdf.fileName
+                    : invoice?.invoice_id
+                      ? 'Click to generate a summary of this period'
+                      : 'Log hours this period to enable summaries'
+                }
+                active={!!summaryPdf}
+                loading={generateSummary.isPending}
+                disabled={!invoice?.invoice_id}
+                onClick={handleSummaryClick}
+                onDelete={summaryPdf ? () => setFileToDelete(summaryPdf) : undefined}
+              />
             </div>
           </div>
         </div>
       </div>
 
       <ConfirmDialog
-        open={confirmDeleteFile}
-        onOpenChange={setConfirmDeleteFile}
-        title="Delete invoice PDF?"
-        description={`This will permanently remove "${invoicePdf?.fileName}" from this invoice.`}
+        open={!!fileToDelete}
+        onOpenChange={(open) => !open && setFileToDelete(null)}
+        title="Delete file?"
+        description={`This will permanently remove "${fileToDelete?.fileName}" from this invoice.`}
         confirmLabel="Delete"
         variant="destructive"
         loading={deleteInvoiceFile.isPending}
-        onConfirm={handleDeleteInvoiceFile}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   )
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+function DocumentSlot({
+  icon: Icon,
+  title,
+  subtitle,
+  active,
+  loading,
+  disabled,
+  onClick,
+  onDelete,
+}: {
+  icon: LucideIcon
+  title: string
+  subtitle: string
+  active: boolean
+  loading: boolean
+  disabled: boolean
+  onClick: () => void
+  onDelete?: () => void
+}) {
+  const DisplayIcon = active ? FileCheck2 : Icon
+
+  return (
+    <div
+      onClick={disabled ? undefined : onClick}
+      className={cn(
+        'flex min-h-20 flex-1 items-center gap-4 rounded-lg border-2 px-4 transition-colors',
+        disabled
+          ? 'cursor-not-allowed border-dashed border-border bg-muted/30 opacity-60'
+          : active
+            ? 'cursor-pointer border-solid border-emerald-300 bg-emerald-50 hover:bg-emerald-100/70 dark:border-emerald-900 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50'
+            : 'cursor-pointer border-dashed border-border bg-muted/30 hover:bg-muted/50'
+      )}
+    >
+      <div
+        className={cn(
+          'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border shadow-sm',
+          active
+            ? 'border-emerald-200 bg-background text-emerald-600 dark:border-emerald-900 dark:text-emerald-400'
+            : 'border-border bg-background text-muted-foreground'
+        )}
+      >
+        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <DisplayIcon className="h-5 w-5" />}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="truncate text-xs leading-snug text-muted-foreground">{subtitle}</p>
+      </div>
+      {onDelete && (
+        <button
+          type="button"
+          title="Delete file"
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete()
+          }}
+          className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-emerald-700/70 transition-colors hover:bg-emerald-200/50 hover:text-emerald-800 dark:text-emerald-400/70 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-300"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  )
+}
 
 function HoursInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [focused, setFocused] = useState(false)

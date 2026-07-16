@@ -13,7 +13,7 @@ export class TimesheetService {
       `SELECT id, name, color_index AS "colorIndex"
        FROM user_projects
        WHERE user_id = $1
-       ORDER BY created_at ASC`,
+       ORDER BY (name = 'Administration') DESC, created_at ASC`,
       [userId],
     );
     this.logger.debug(`Fetched ${result.rows.length} projects for user ${userId}`);

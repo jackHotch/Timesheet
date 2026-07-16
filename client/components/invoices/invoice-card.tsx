@@ -35,6 +35,7 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
   }
 
   const invoiceFile = invoice.files.find(f => f.fileType === 'invoice')
+  const summaryFile = invoice.files.find(f => f.fileType === 'summary')
 
   return (
     <div onClick={handleClick} className="card flex flex-col gap-2 cursor-pointer hover:border-ring/50 hover:-translate-y-0.5 hover:shadow-lg">
@@ -74,7 +75,11 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
               <FileText size={28} className="p-1.5 hover:bg-ring/30 rounded-sm cursor-pointer" />
             </span>
           )}
-          {invoice.files.some(f => f.fileType === 'summary') && <span title="Summary"><FileSpreadsheet size={28} className="p-1.5 hover:bg-ring/30 rounded-sm" /></span>}
+          {summaryFile && (
+            <span title="Summary" onClick={() => handleFileClick(summaryFile.id)}>
+              <FileSpreadsheet size={28} className="p-1.5 hover:bg-ring/30 rounded-sm cursor-pointer" />
+            </span>
+          )}
         </div>
       </div>
     </div>
