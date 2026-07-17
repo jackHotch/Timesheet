@@ -16,12 +16,16 @@ export class S3Service {
 
   private get client(): S3Client {
     if (!this._client) {
+      const accessKeyId = this.config.get<string>('aws.accessKeyId');
+      const secretAccessKey = this.config.get<string>('aws.secretAccessKey');
       this._client = new S3Client({
         region: this.config.get<string>('aws.region'),
-        credentials: {
-          accessKeyId: this.config.get<string>('aws.accessKeyId')!,
-          secretAccessKey: this.config.get<string>('aws.secretAccessKey')!,
-        },
+        // Only pass explicit credentials when static keys are configured (local dev);
+        // otherwise fall back to the SDK's default provider chain, which picks up the
+        // ECS task role in production.
+        ...(accessKeyId && secretAccessKey
+          ? { credentials: { accessKeyId, secretAccessKey } }
+          : {}),
       });
     }
     return this._client;
