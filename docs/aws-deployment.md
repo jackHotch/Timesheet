@@ -163,10 +163,10 @@ ECS → Clusters → **Create cluster** → name `timesheet-cluster` → infrast
 
 ## 9. Task definitions
 
-You won't hand-write these in the console — `deploy/ecs/api-taskdef.json` and `deploy/ecs/client-taskdef.json` are already checked into the repo. Before the first deploy:
+You won't hand-write these in the console — `deploy/ecs/api-taskdef.json` and `deploy/ecs/client-taskdef.json` are already checked into the repo. They contain the placeholder token `__AWS_ACCOUNT_ID__` instead of a real account ID — this repo is public, so the real number is never committed; the GitHub Actions workflow substitutes it at runtime from a secret (see step 13). Before the first deploy:
 
-1. Replace every `<ACCOUNT_ID>` placeholder in both files with your real AWS account ID.
-2. Register each one once, either via the console (ECS → Task definitions → **Create new task definition** → look for **"Configure via JSON"** → paste the file contents — "Create new revision" only appears once a family already exists) or via `aws ecs register-task-definition --cli-input-json file://deploy/ecs/api-taskdef.json`.
+1. To register one manually (for the one-time bootstrap before GitHub Actions has run), copy the file's contents and, only in the console's JSON editor (or a local scratch copy — never save this substitution back into the git-tracked file), replace `__AWS_ACCOUNT_ID__` with your real AWS account ID.
+2. Register each one once, either via the console (ECS → Task definitions → **Create new task definition** → look for **"Configure via JSON"** → paste the substituted contents — "Create new revision" only appears once a family already exists) or via `aws ecs register-task-definition --cli-input-json file://deploy/ecs/api-taskdef.json` (after substituting locally, outside git).
 
 Note the images referenced (`timesheet/timesheet-api:latest`, `timesheet/timesheet-client:latest`) won't exist in ECR yet — either push a placeholder image once by hand (`docker build`, `docker push`) or just create the ECS services after the first GitHub Actions run has pushed real images.
 
@@ -200,8 +200,9 @@ Add two more DNS records (DNS only / grey cloud):
 
 Repo Settings → **Secrets and variables** → **Actions**:
 
-**Secrets** (used only by the `migrate` job to talk to Neon directly):
-- `NEON_DATABASE_HOST`, `NEON_DATABASE_PORT`, `NEON_DATABASE_USER`, `NEON_DATABASE_PASSWORD`, `NEON_DATABASE_NAME`
+**Secrets**:
+- `NEON_DATABASE_HOST`, `NEON_DATABASE_PORT`, `NEON_DATABASE_USER`, `NEON_DATABASE_PASSWORD`, `NEON_DATABASE_NAME` — used only by the `migrate` job to talk to Neon directly.
+- `AWS_ACCOUNT_ID` = your real AWS account ID — used by the `deploy-api`/`deploy-client` jobs to fill in the `__AWS_ACCOUNT_ID__` placeholder in the task definition files at runtime, since this repo is public and the real number should never be committed to it.
 
 **Variables**:
 - `AWS_REGION` = `us-east-1`

@@ -91,6 +91,8 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+      - name: Fill in AWS account ID
+        run: sed -i "s/__AWS_ACCOUNT_ID__/${{ secrets.AWS_ACCOUNT_ID }}/g" deploy/ecs/api-taskdef.json
       - id: render
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
@@ -113,6 +115,8 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+      - name: Fill in AWS account ID
+        run: sed -i "s/__AWS_ACCOUNT_ID__/${{ secrets.AWS_ACCOUNT_ID }}/g" deploy/ecs/client-taskdef.json
       - id: render
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:

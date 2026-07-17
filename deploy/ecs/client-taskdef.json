@@ -4,11 +4,11 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
   "memory": "512",
-  "executionRoleArn": "arn:aws:iam::<accountid>:role/timesheet-ecs-execution-role",
+  "executionRoleArn": "arn:aws:iam::__AWS_ACCOUNT_ID__:role/timesheet-ecs-execution-role",
   "containerDefinitions": [
     {
       "name": "timesheet-client",
-      "image": "<accountid>.dkr.ecr.us-east-1.amazonaws.com/timesheet/timesheet-client:latest",
+      "image": "__AWS_ACCOUNT_ID__.dkr.ecr.us-east-1.amazonaws.com/timesheet/timesheet-client:latest",
       "essential": true,
       "portMappings": [
         {

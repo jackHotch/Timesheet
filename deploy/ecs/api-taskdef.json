@@ -4,12 +4,12 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "arn:aws:iam::<accountid>:role/timesheet-ecs-execution-role",
-  "taskRoleArn": "arn:aws:iam::<accountid>:role/timesheet-api-task-role",
+  "executionRoleArn": "arn:aws:iam::__AWS_ACCOUNT_ID__:role/timesheet-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::__AWS_ACCOUNT_ID__:role/timesheet-api-task-role",
   "containerDefinitions": [
     {
       "name": "timesheet-api",
-      "image": "<accountid>.dkr.ecr.us-east-1.amazonaws.com/timesheet/timesheet-api:latest",
+      "image": "__AWS_ACCOUNT_ID__.dkr.ecr.us-east-1.amazonaws.com/timesheet/timesheet-api:latest",
       "essential": true,
       "portMappings": [
         {
@@ -22,15 +22,15 @@
         { "name": "AWS_REGION", "value": "us-east-1" }
       ],
       "secrets": [
-        { "name": "JWT_SECRET", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/jwt-secret" },
-        { "name": "DATABASE_HOST", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-host" },
-        { "name": "DATABASE_PORT", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-port" },
-        { "name": "DATABASE_USER", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-user" },
-        { "name": "DATABASE_PASSWORD", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-password" },
-        { "name": "DATABASE_NAME", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-name" },
-        { "name": "DATABASE_SSL", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-ssl" },
-        { "name": "AWS_S3_BUCKET", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/aws-s3-bucket" },
-        { "name": "CLIENT_URL", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/client-url" }
+        { "name": "JWT_SECRET", "valueFrom": "arn:aws:ssm:us-east-1:__AWS_ACCOUNT_ID__:parameter/timesheet/jwt-secret" },
+        { "name": "DATABASE_HOST", "valueFrom": "arn:aws:ssm:us-east-1:__AWS_ACCOUNT_ID__:parameter/timesheet/database-host" },
+        { "name": "DATABASE_PORT", "valueFrom": "arn:aws:ssm:us-east-1:__AWS_ACCOUNT_ID__:parameter/timesheet/database-port" },
+        { "name": "DATABASE_USER", "valueFrom": "arn:aws:ssm:us-east-1:__AWS_ACCOUNT_ID__:parameter/timesheet/database-user" },
+        { "name": "DATABASE_PASSWORD", "valueFrom": "arn:aws:ssm:us-east-1:__AWS_ACCOUNT_ID__:parameter/timesheet/database-password" },
+        { "name": "DATABASE_NAME", "valueFrom": "arn:aws:ssm:us-east-1:__AWS_ACCOUNT_ID__:parameter/timesheet/database-name" },
+        { "name": "DATABASE_SSL", "valueFrom": "arn:aws:ssm:us-east-1:__AWS_ACCOUNT_ID__:parameter/timesheet/database-ssl" },
+        { "name": "AWS_S3_BUCKET", "valueFrom": "arn:aws:ssm:us-east-1:__AWS_ACCOUNT_ID__:parameter/timesheet/aws-s3-bucket" },
+        { "name": "CLIENT_URL", "valueFrom": "arn:aws:ssm:us-east-1:__AWS_ACCOUNT_ID__:parameter/timesheet/client-url" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
