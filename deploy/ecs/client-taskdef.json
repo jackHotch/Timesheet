@@ -8,7 +8,7 @@
   "containerDefinitions": [
     {
       "name": "timesheet-client",
-      "image": "<accountid>.dkr.ecr.us-east-1.amazonaws.com/timesheet-client:latest",
+      "image": "<accountid>.dkr.ecr.us-east-1.amazonaws.com/timesheet/timesheet-client:latest",
       "essential": true,
       "portMappings": [
         {
