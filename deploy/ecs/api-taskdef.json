@@ -1,0 +1,45 @@
+{
+  "family": "timesheet-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::<accountid>:role/timesheet-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::<accountid>:role/timesheet-api-task-role",
+  "containerDefinitions": [
+    {
+      "name": "timesheet-api",
+      "image": "<accountid>.dkr.ecr.us-east-1.amazonaws.com/timesheet-api:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "PORT", "value": "8080" },
+        { "name": "AWS_REGION", "value": "us-east-1" }
+      ],
+      "secrets": [
+        { "name": "JWT_SECRET", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/jwt-secret" },
+        { "name": "DATABASE_HOST", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-host" },
+        { "name": "DATABASE_PORT", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-port" },
+        { "name": "DATABASE_USER", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-user" },
+        { "name": "DATABASE_PASSWORD", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-password" },
+        { "name": "DATABASE_NAME", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-name" },
+        { "name": "DATABASE_SSL", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/database-ssl" },
+        { "name": "AWS_S3_BUCKET", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/aws-s3-bucket" },
+        { "name": "CLIENT_URL", "valueFrom": "arn:aws:ssm:us-east-1:<accountid>:parameter/timesheet/client-url" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/timesheet-api",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
