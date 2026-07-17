@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "timesheet-api",
-      "image": "<accountid>.dkr.ecr.us-east-1.amazonaws.com/timesheet-api:latest",
+      "image": "<accountid>.dkr.ecr.us-east-1.amazonaws.com/timesheet/timesheet-api:latest",
       "essential": true,
       "portMappings": [
         {

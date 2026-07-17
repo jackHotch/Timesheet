@@ -10,7 +10,7 @@ Use these exact names so they line up with the checked-in files (`deploy/ecs/*.j
 
 | Resource | Name |
 |---|---|
-| ECR repos | `timesheet-api`, `timesheet-client` |
+| ECR repos | `timesheet/timesheet-api`, `timesheet/timesheet-client` |
 | ECS cluster | `timesheet-cluster` |
 | ECS services | `timesheet-api-svc`, `timesheet-client-svc` |
 | Task def families | `timesheet-api`, `timesheet-client` |
@@ -27,8 +27,8 @@ Use these exact names so they line up with the checked-in files (`deploy/ecs/*.j
 
 ## 1. ECR — container registries
 
-1. ECR → **Create repository** (private) → name `timesheet-api`. Enable "Scan on push".
-2. Repeat for `timesheet-client`.
+1. ECR → **Create repository** (private) → name `timesheet/timesheet-api`. Enable "Scan on push".
+2. Repeat for `timesheet/timesheet-client`.
 3. Note the registry URI shown (`<account-id>.dkr.ecr.us-east-1.amazonaws.com`) — you'll need your account ID repeatedly below.
 
 ## 2. IAM — roles
@@ -86,8 +86,8 @@ Create these four roles (IAM → Roles → Create role):
           "ecr:BatchGetImage"
         ],
         "Resource": [
-          "arn:aws:ecr:us-east-1:<account-id>:repository/timesheet-api",
-          "arn:aws:ecr:us-east-1:<account-id>:repository/timesheet-client"
+          "arn:aws:ecr:us-east-1:<account-id>:repository/timesheet/timesheet-api",
+          "arn:aws:ecr:us-east-1:<account-id>:repository/timesheet/timesheet-client"
         ]
       },
       {
@@ -168,7 +168,7 @@ You won't hand-write these in the console — `deploy/ecs/api-taskdef.json` and 
 1. Replace every `<ACCOUNT_ID>` placeholder in both files with your real AWS account ID.
 2. Register each one once, either via the console (ECS → Task definitions → **Create new task definition** → look for **"Configure via JSON"** → paste the file contents — "Create new revision" only appears once a family already exists) or via `aws ecs register-task-definition --cli-input-json file://deploy/ecs/api-taskdef.json`.
 
-Note the images referenced (`timesheet-api:latest`, `timesheet-client:latest`) won't exist in ECR yet — either push a placeholder image once by hand (`docker build`, `docker push`) or just create the ECS services after the first GitHub Actions run has pushed real images.
+Note the images referenced (`timesheet/timesheet-api:latest`, `timesheet/timesheet-client:latest`) won't exist in ECR yet — either push a placeholder image once by hand (`docker build`, `docker push`) or just create the ECS services after the first GitHub Actions run has pushed real images.
 
 ## 10. Application Load Balancer
 
@@ -206,8 +206,8 @@ Repo Settings → **Secrets and variables** → **Actions**:
 **Variables**:
 - `AWS_REGION` = `us-east-1`
 - `AWS_DEPLOY_ROLE_ARN` = ARN of `timesheet-gha-deploy-role`
-- `ECR_REPO_API` = `timesheet-api`
-- `ECR_REPO_CLIENT` = `timesheet-client`
+- `ECR_REPO_API` = `timesheet/timesheet-api`
+- `ECR_REPO_CLIENT` = `timesheet/timesheet-client`
 - `ECS_CLUSTER` = `timesheet-cluster`
 - `ECS_SERVICE_API` = `timesheet-api-svc`
 - `ECS_SERVICE_CLIENT` = `timesheet-client-svc`
