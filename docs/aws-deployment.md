@@ -62,7 +62,7 @@ Create these four roles (IAM → Roles → Create role):
         "Condition": {
           "StringEquals": {
             "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-            "token.actions.githubusercontent.com:sub": "repo:jackHotch/Timesheet:ref:refs/heads/main"
+            "token.actions.githubusercontent.com:sub": "repo:jackHotch/Timesheet:ref:refs/heads/production"
           }
         }
       }
@@ -216,7 +216,7 @@ Repo Settings → **Secrets and variables** → **Actions**:
 
 ## 14. First push & validation
 
-1. Push to `main`. Watch Actions → `Deploy` run through `migrate` → `build-push-api`/`build-push-client` → `deploy-api`/`deploy-client`.
+1. Push to `production`. Watch Actions → `Deploy` run through `migrate` → `build-push-api`/`build-push-client` → `deploy-api`/`deploy-client`.
 2. In ECS, confirm both services reach steady state with healthy targets in their target groups.
 3. Visit `https://simpletimesheet.app` (client should load) and `https://api.simpletimesheet.app/health` (should return `{"status":"ok"}`) — both over valid HTTPS.
 4. Log in through the client and exercise a file-upload/invoice flow to confirm the API's S3 task role is working end-to-end.
