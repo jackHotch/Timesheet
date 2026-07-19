@@ -39,6 +39,34 @@ export class TimesheetService {
     this.logger.debug(`Deleted project ${projectId} for user ${userId}`);
   }
 
+  async removeProjectFromPeriod(userId: number, projectId: string, year: number, month: number, half: Half) {
+    const startDay = half === Half.FIRST_HALF ? 1 : 15;
+    const endDay = half === Half.FIRST_HALF ? 14 : new Date(year, month, 0).getDate();
+    const mm = String(month).padStart(2, '0');
+    const periodStart = `${year}-${mm}-${String(startDay).padStart(2, '0')}`;
+    const periodEnd = `${year}-${mm}-${String(endDay).padStart(2, '0')}`;
+
+    await this.db.query(
+      `DELETE FROM timesheet_entries
+       WHERE user_id = $1 AND project_id = $2 AND date >= $3 AND date <= $4`,
+      [userId, projectId, periodStart, periodEnd],
+    );
+    this.logger.debug(`Removed project ${projectId} entries for user=${userId} period ${periodStart}–${periodEnd}`);
+
+    const remaining = await this.db.query(
+      `SELECT COUNT(*) AS count FROM timesheet_entries
+       WHERE user_id = $1 AND date >= $2 AND date <= $3`,
+      [userId, periodStart, periodEnd],
+    );
+    if (parseInt(remaining.rows[0].count, 10) === 0) {
+      await this.db.query(
+        `DELETE FROM invoices WHERE user_id = $1 AND year = $2 AND month = $3 AND period = $4`,
+        [userId, year, month, half],
+      );
+      this.logger.debug(`Deleted invoice for user=${userId} ${year}/${month} ${half}`);
+    }
+  }
+
   async getEntries(userId: number, year: number, month: number, half: Half) {
     const startDay = half === Half.FIRST_HALF ? 1 : 15;
     const endDay = half === Half.FIRST_HALF ? 14 : new Date(year, month, 0).getDate();

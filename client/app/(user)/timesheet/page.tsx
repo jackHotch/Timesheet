@@ -23,7 +23,7 @@ import {
   useProjects,
   useTimesheetEntries,
   useCreateProject,
-  useDeleteProject,
+  useRemoveProjectFromPeriod,
   useUpsertEntry,
   type Entries,
 } from '@/hooks/use-timesheet'
@@ -160,7 +160,7 @@ export default function TimesheetPage() {
   }, [serverEntries, entryOverrides])
 
   const createProject = useCreateProject()
-  const deleteProject = useDeleteProject()
+  const removeProjectFromPeriod = useRemoveProjectFromPeriod(period ?? getCurrentPeriod())
   const upsertEntry = useUpsertEntry(period ?? getCurrentPeriod())
 
   const saving = upsertEntry.isPending || createProject.isPending
@@ -260,7 +260,23 @@ export default function TimesheetPage() {
   }
 
   function removeProject(id: string) {
-    deleteProject.mutate(id)
+    removeProjectFromPeriod.mutate(id)
+
+    setActivatedProjectIds((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+
+    // Zero out this project's hours for every day in the current period so it
+    // disappears immediately, without waiting for the entries query to refetch.
+    setEntryOverrides((prev) => {
+      const next: Entries = { ...prev }
+      for (const key of Object.keys(entries)) {
+        next[key] = { ...(next[key] ?? entries[key] ?? {}), [id]: 0 }
+      }
+      return next
+    })
   }
 
   function handleInvoiceFileChange(e: React.ChangeEvent<HTMLInputElement>) {
