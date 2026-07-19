@@ -85,6 +85,19 @@ export function useDeleteProject() {
   })
 }
 
+export function useRemoveProjectFromPeriod(period: Period) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (projectId: string) =>
+      api.delete(`/timesheet/entries/project/${projectId}`, {
+        params: { year: period.year, month: period.month, half: period.half },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: entriesQueryKey(period) })
+    },
+  })
+}
+
 export function useUpsertEntry(period: Period) {
   const queryClient = useQueryClient()
   return useMutation({

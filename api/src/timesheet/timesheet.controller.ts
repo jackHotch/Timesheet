@@ -34,6 +34,23 @@ export class TimesheetController {
     return this.timesheetService.deleteProject(userId, projectId);
   }
 
+  @Delete('entries/project/:projectId')
+  removeProjectFromPeriod(
+    @User() userId: number,
+    @Param('projectId') projectId: string,
+    @Query('year') year: string,
+    @Query('month') month: string,
+    @Query('half') half: Half,
+  ) {
+    return this.timesheetService.removeProjectFromPeriod(
+      userId,
+      projectId,
+      Number(year),
+      Number(month),
+      half,
+    );
+  }
+
   @Get('entries')
   getEntries(
     @User() userId: number,
