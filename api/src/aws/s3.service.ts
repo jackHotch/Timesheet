@@ -22,7 +22,7 @@ export class S3Service {
         region: this.config.get<string>('aws.region'),
         // Only pass explicit credentials when static keys are configured (local dev);
         // otherwise fall back to the SDK's default provider chain, which picks up the
-        // ECS task role in production.
+        // EC2 instance profile role in production.
         ...(accessKeyId && secretAccessKey
           ? { credentials: { accessKeyId, secretAccessKey } }
           : {}),
