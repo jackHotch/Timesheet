@@ -1,230 +1,160 @@
-# Deploying Timesheet to AWS Fargate/ECS
+# Deploying Timesheet to a single AWS EC2 instance
 
-This is a click-through runbook for standing up the app on AWS via the console (no Terraform/CDK). Follow it top to bottom — later steps depend on resources created in earlier ones.
+This is a click-through runbook for standing up the app on one EC2 instance via the console (no Terraform/CDK, no Docker/ECS). The client and API run as plain Node processes under pm2, fronted by Caddy for TLS. Deploys are a `git pull` + rebuild over SSH, triggered by GitHub Actions.
 
 Region used throughout: **us-east-1**.
 
 ## 0. Naming convention
 
-Use these exact names so they line up with the checked-in files (`deploy/ecs/*.json`, `.github/workflows/deploy.yml`):
-
 | Resource | Name |
 |---|---|
-| ECR repos | `timesheet/timesheet-api`, `timesheet/timesheet-client` |
-| ECS cluster | `timesheet-cluster` |
-| ECS services | `timesheet-api-svc`, `timesheet-client-svc` |
-| Task def families | `timesheet-api`, `timesheet-client` |
-| Security groups | `timesheet-alb-sg`, `timesheet-ecs-sg` |
-| IAM roles | `timesheet-ecs-execution-role`, `timesheet-api-task-role`, `timesheet-client-task-role`, `timesheet-gha-deploy-role` |
-| CloudWatch log groups | `/ecs/timesheet-api`, `/ecs/timesheet-client` |
-| SSM parameter path | `/timesheet/*` |
+| EC2 instance | `timesheet-server` |
+| Security group | `timesheet-ec2-sg` |
+| IAM role (instance profile) | `timesheet-ec2-role` |
+| Elastic IP | `timesheet-eip` |
 
 ## Prerequisites
 
 - A Neon Postgres project exists; you have its host, port, user, password, database name.
 - `simpletimesheet.app` is registered and DNS-hosted at Cloudflare.
 - You have an AWS account with console access and can create IAM roles.
+- You have an SSH key pair to use for both console access and GitHub Actions deploys (create one during instance launch, or bring your own).
 
-## 1. ECR — container registries
+## 1. IAM — instance role
 
-1. ECR → **Create repository** (private) → name `timesheet/timesheet-api`. Enable "Scan on push".
-2. Repeat for `timesheet/timesheet-client`.
-3. Note the registry URI shown (`<account-id>.dkr.ecr.us-east-1.amazonaws.com`) — you'll need your account ID repeatedly below.
+IAM → Roles → **Create role** → trusted entity: AWS service → **EC2**.
 
-## 2. IAM — roles
-
-Create these four roles (IAM → Roles → Create role):
-
-**`timesheet-ecs-execution-role`**
-- Trusted entity: AWS service → **Elastic Container Service** → **Elastic Container Service Task**.
-- Attach managed policy `AmazonECSTaskExecutionRolePolicy`.
-- Add inline policy granting `ssm:GetParameters`, `ssm:GetParameter` on `arn:aws:ssm:us-east-1:<account-id>:parameter/timesheet/*`, and `kms:Decrypt` on `arn:aws:kms:us-east-1:<account-id>:alias/aws/ssm` (required even though it's the AWS-managed key).
-
-**`timesheet-api-task-role`**
-- Trusted entity: same (`ecs-tasks.amazonaws.com`).
+**`timesheet-ec2-role`**
 - Inline policy: `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject` on `arn:aws:s3:::<your-bucket>` and `arn:aws:s3:::<your-bucket>/*`.
-- This is what replaces the static `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` — the API's S3 client now falls back to this role automatically (see code change notes at the bottom of this doc).
+- This is what replaces static `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` — the API's S3 client falls back to the instance profile automatically via the AWS SDK's default credential chain (same code path that supported ECS task roles before; see `api/src/aws/s3.service.ts`).
 
-**`timesheet-client-task-role`**
-- Trusted entity: same. No permissions needed — the client container makes no AWS API calls. (You can skip attaching this role to the client task definition entirely; it's listed here only for completeness.)
+## 2. Networking — security group
 
-**`timesheet-gha-deploy-role`** (assumed by GitHub Actions via OIDC — no long-lived AWS keys)
-- First, add the OIDC identity provider once: IAM → Identity providers → **Add provider** → OpenID Connect → Provider URL `https://token.actions.githubusercontent.com` → Audience `sts.amazonaws.com`.
-- Create the role with a custom trust policy:
-  ```json
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": { "Federated": "arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com" },
-        "Action": "sts:AssumeRoleWithWebIdentity",
-        "Condition": {
-          "StringEquals": {
-            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-            "token.actions.githubusercontent.com:sub": "repo:jackHotch/Timesheet:ref:refs/heads/production"
-          }
-        }
-      }
-    ]
-  }
-  ```
-- Inline permissions policy:
-  ```json
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      { "Effect": "Allow", "Action": "ecr:GetAuthorizationToken", "Resource": "*" },
-      {
-        "Effect": "Allow",
-        "Action": [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:PutImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:BatchGetImage"
-        ],
-        "Resource": [
-          "arn:aws:ecr:us-east-1:<account-id>:repository/timesheet/timesheet-api",
-          "arn:aws:ecr:us-east-1:<account-id>:repository/timesheet/timesheet-client"
-        ]
-      },
-      {
-        "Effect": "Allow",
-        "Action": ["ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition", "ecs:UpdateService", "ecs:DescribeServices"],
-        "Resource": "*"
-      },
-      {
-        "Effect": "Allow",
-        "Action": "iam:PassRole",
-        "Resource": [
-          "arn:aws:iam::<account-id>:role/timesheet-ecs-execution-role",
-          "arn:aws:iam::<account-id>:role/timesheet-api-task-role",
-          "arn:aws:iam::<account-id>:role/timesheet-client-task-role"
-        ]
-      },
-      {
-        "Effect": "Allow",
-        "Action": ["ssm:GetParameters", "ssm:GetParameter"],
-        "Resource": "arn:aws:ssm:us-east-1:<account-id>:parameter/timesheet/*"
-      }
-    ]
-  }
-  ```
+Use the **default VPC**.
 
-## 3. Networking — security groups
+`timesheet-ec2-sg` inbound rules:
+- TCP 22 (SSH) from `0.0.0.0/0` — restrict to your admin IP if you have a static one; GitHub Actions' runner IPs are not static, so this can't be locked down to GitHub alone. Key-based auth is the real protection here.
+- TCP 80 from `0.0.0.0/0` and `::/0` — Caddy needs this for the ACME HTTP-01 challenge and to redirect to HTTPS.
+- TCP 443 from `0.0.0.0/0` and `::/0`.
 
-Use the **default VPC** (it already has public subnets with auto-assigned public IPs in at least 2 AZs — confirm under VPC → Subnets).
+Outbound: all (needed to reach Neon, S3, npm registry, Let's Encrypt).
 
-1. `timesheet-alb-sg`: inbound rules — TCP 80 from `0.0.0.0/0` and `::/0`, TCP 443 from `0.0.0.0/0` and `::/0`. Outbound: all.
-2. `timesheet-ecs-sg`: inbound rules — TCP 3000 with source = `timesheet-alb-sg`, TCP 8080 with source = `timesheet-alb-sg` (select the security group itself as the source, not a CIDR). Outbound: all.
+## 3. EC2 instance
 
-> **Cost note:** tasks run in public subnets with a public IP (needed to reach ECR, Neon, and S3 without paying for a NAT Gateway), but the security group only allows inbound traffic from the ALB — so they're not directly reachable from the internet. This is a well-known, accepted tradeoff for small deployments; the more isolated (and pricier) alternative is private subnets + a NAT Gateway.
+1. EC2 → **Launch instance** → name `timesheet-server`.
+2. AMI: Ubuntu 24.04 LTS (or Amazon Linux 2023 — adjust package manager commands below accordingly).
+3. Instance type: `t3.small` (1 vCPU / 2 GB is tight for two Node builds running back to back; `t3.micro` will work but expect slow `npm ci`/`next build` steps and possible OOM — size up if that happens).
+4. Key pair: select or create one. Save the private key — it becomes the `EC2_SSH_KEY` GitHub secret.
+5. Network settings: default VPC, auto-assign public IP **enabled**, security group `timesheet-ec2-sg`.
+6. Storage: 20 GiB gp3 (two Node projects' `node_modules` plus build output add up).
+7. Advanced → IAM instance profile: `timesheet-ec2-role`.
+8. Launch.
+9. EC2 → **Elastic IPs** → **Allocate** → associate it with `timesheet-server`, so the public IP survives a stop/start.
 
-## 4. ACM — TLS certificate
+## 4. Cloudflare — DNS
 
-1. Certificate Manager → **Request a certificate** (public), region **us-east-1**.
-2. Domain names: `simpletimesheet.app`, then **Add another name to this certificate** → `api.simpletimesheet.app`.
-3. Validation method: **DNS validation**.
-4. After requesting, expand each domain to see its CNAME validation record (name + value).
+Add two DNS records (proxy status **DNS only** / grey cloud — Caddy needs to see the real client IP and handle its own TLS via the ACME challenge, which Cloudflare's proxy would interfere with):
+- `simpletimesheet.app` (apex) → A → the instance's Elastic IP.
+- `api.simpletimesheet.app` → A → the same Elastic IP.
 
-## 5. Cloudflare — certificate validation
+Wait for DNS to propagate before continuing (Caddy will retry certificate issuance on its own, but it's simpler to get DNS right first).
 
-1. Cloudflare dashboard → DNS → Records → **Add record** for each of the two CNAMEs ACM showed you.
-2. Set proxy status to **DNS only** (grey cloud, not orange) for both.
-3. Back in ACM, wait for status to flip to **Issued** (can take a few minutes) before continuing.
+## 5. Server setup
 
-## 6. SSM Parameter Store — secrets
+SSH into the instance (`ssh -i your-key.pem ubuntu@<elastic-ip>`) and run:
 
-Systems Manager → Parameter Store → **Create parameter**, type **SecureString**, for each of:
+```bash
+# Swap — next build alone needs 1.5-2GB; without swap, small instances
+# (t3.micro/t3.small) OOM-kill the build (shows up as "Bus error (core dumped)").
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
-| Name | Value |
-|---|---|
-| `/timesheet/jwt-secret` | a long random string (not the default `change-me-in-production`) |
-| `/timesheet/database-host` | your Neon host |
-| `/timesheet/database-port` | `5432` |
-| `/timesheet/database-user` | your Neon user |
-| `/timesheet/database-password` | your Neon password |
-| `/timesheet/database-name` | your Neon database name |
-| `/timesheet/database-ssl` | `true` |
-| `/timesheet/aws-s3-bucket` | your S3 bucket name |
-| `/timesheet/client-url` | `https://simpletimesheet.app` |
+# Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs git
 
-These are referenced by the `secrets` block in `deploy/ecs/api-taskdef.json`, which resolves them to real environment variables when the container starts (not the same as the `environment` block, which is plaintext).
+# pm2
+sudo npm install -g pm2
 
-## 7. CloudWatch Logs
+# Caddy
+sudo apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt-get update
+sudo apt-get install -y caddy
+```
 
-Create two log groups up front (CloudWatch → Log groups → **Create log group**): `/ecs/timesheet-api`, `/ecs/timesheet-client`. Set retention to 30 days (optional, but avoids unbounded storage cost).
+Clone the repo and create the runtime env files (these are gitignored — `git pull` on future deploys will never touch or overwrite them):
 
-## 8. ECS cluster
+```bash
+git clone https://github.com/jackHotch/Timesheet.git ~/timesheet
+cd ~/timesheet
+```
 
-ECS → Clusters → **Create cluster** → name `timesheet-cluster` → infrastructure: **AWS Fargate** only.
+`~/timesheet/api/.env`:
+```
+PORT=8080
+CLIENT_URL=https://simpletimesheet.app
+JWT_SECRET=<a long random string, not the default>
+DATABASE_HOST=<your Neon host>
+DATABASE_PORT=5432
+DATABASE_USER=<your Neon user>
+DATABASE_PASSWORD=<your Neon password>
+DATABASE_NAME=<your Neon database name>
+DATABASE_SSL=true
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=<your S3 bucket name>
+```
 
-## 9. Task definitions
+`~/timesheet/client/.env.production` (only `NEXT_PUBLIC_*` vars matter here — they're baked in at `next build` time):
+```
+NEXT_PUBLIC_API_URL=https://api.simpletimesheet.app
+```
 
-You won't hand-write these in the console — `deploy/ecs/api-taskdef.json` and `deploy/ecs/client-taskdef.json` are already checked into the repo. They contain the placeholder token `__AWS_ACCOUNT_ID__` instead of a real account ID — this repo is public, so the real number is never committed; the GitHub Actions workflow substitutes it at runtime from a secret (see step 13). Before the first deploy:
+Point Caddy at the repo's checked-in config and start everything:
 
-1. To register one manually (for the one-time bootstrap before GitHub Actions has run), copy the file's contents and, only in the console's JSON editor (or a local scratch copy — never save this substitution back into the git-tracked file), replace `__AWS_ACCOUNT_ID__` with your real AWS account ID.
-2. Register each one once, either via the console (ECS → Task definitions → **Create new task definition** → look for **"Configure via JSON"** → paste the substituted contents — "Create new revision" only appears once a family already exists) or via `aws ecs register-task-definition --cli-input-json file://deploy/ecs/api-taskdef.json` (after substituting locally, outside git).
+```bash
+sudo rm -f /etc/caddy/Caddyfile
+sudo ln -s ~/timesheet/deploy/ec2/Caddyfile /etc/caddy/Caddyfile
+sudo systemctl reload caddy
 
-Note the images referenced (`timesheet/timesheet-api:latest`, `timesheet/timesheet-client:latest`) won't exist in ECR yet — either push a placeholder image once by hand (`docker build`, `docker push`) or just create the ECS services after the first GitHub Actions run has pushed real images.
+cd ~/timesheet/api && npm ci && npm run migrate:up && npm run build && cd ..
+cd ~/timesheet/client && npm ci && npm run build && cd ..
 
-## 10. Application Load Balancer
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup   # run the command it prints (registers pm2 to survive reboots)
+```
 
-1. EC2 → Load Balancers → **Create load balancer** → Application Load Balancer → name `timesheet-alb` → internet-facing → default VPC → select the public subnets in both AZs → security group `timesheet-alb-sg`.
-2. Create target group `timesheet-api-tg`: target type **IP**, port 8080, health check path `/health`, success code 200.
-3. Create target group `timesheet-client-tg`: target type **IP**, port 3000, health check path `/`, success code 200.
-4. Listener on port 80: default action → **Redirect to** HTTPS 443.
-5. Listener on port 443: attach the ACM certificate from step 4; default rule → forward to `timesheet-client-tg`; add a rule: **if Host header is `api.simpletimesheet.app`** → forward to `timesheet-api-tg`.
+Visit `https://simpletimesheet.app` and `https://api.simpletimesheet.app/health` — Caddy issues Let's Encrypt certificates automatically on first request to each hostname, so the first hit may take a few seconds.
 
-## 11. ECS services
+> If you ever edit `deploy/ec2/Caddyfile`, `git pull` on the instance picks up the change automatically (it's a symlink), but you still need `sudo systemctl reload caddy` afterward — that step isn't part of the automated deploy script since the Caddyfile rarely changes.
 
-ECS → cluster `timesheet-cluster` → **Create service**:
+## 6. GitHub repository configuration
 
-**`timesheet-api-svc`**
-- Launch type: Fargate. Task definition: `timesheet-api`. Desired tasks: 1.
-- Networking: default VPC, public subnets, security group `timesheet-ecs-sg`, **auto-assign public IP: enabled**.
-- Load balancing: attach to `timesheet-api-tg`, container port 8080.
+Repo Settings → **Secrets and variables** → **Actions** → **Secrets**:
+- `EC2_HOST` = the instance's Elastic IP (or a DNS name pointing to it).
+- `EC2_USER` = `ubuntu` (or `ec2-user` if you used Amazon Linux).
+- `EC2_SSH_KEY` = the private key from step 3, pasted in full (contents of the `.pem` file).
 
-**`timesheet-client-svc`**
-- Same, using task definition `timesheet-client`, target group `timesheet-client-tg`, container port 3000.
+No AWS credentials or OIDC role are needed in GitHub Actions anymore — the deploy is a plain SSH session, and migrations run on the instance itself using the DB credentials already in `api/.env`.
 
-## 12. Cloudflare — production DNS
+## 7. First push & validation
 
-Add two more DNS records (DNS only / grey cloud):
-- `simpletimesheet.app` (apex) → CNAME → the ALB's DNS name (Cloudflare flattens apex CNAMEs automatically, so this is valid even at the root).
-- `api.simpletimesheet.app` → CNAME → the same ALB DNS name.
-
-## 13. GitHub repository configuration
-
-Repo Settings → **Secrets and variables** → **Actions**:
-
-**Secrets**:
-- `NEON_DATABASE_HOST`, `NEON_DATABASE_PORT`, `NEON_DATABASE_USER`, `NEON_DATABASE_PASSWORD`, `NEON_DATABASE_NAME` — used only by the `migrate` job to talk to Neon directly.
-- `AWS_ACCOUNT_ID` = your real AWS account ID — used by the `deploy-api`/`deploy-client` jobs to fill in the `__AWS_ACCOUNT_ID__` placeholder in the task definition files at runtime, since this repo is public and the real number should never be committed to it.
-
-**Variables**:
-- `AWS_REGION` = `us-east-1`
-- `AWS_DEPLOY_ROLE_ARN` = ARN of `timesheet-gha-deploy-role`
-- `ECR_REPO_API` = `timesheet/timesheet-api`
-- `ECR_REPO_CLIENT` = `timesheet/timesheet-client`
-- `ECS_CLUSTER` = `timesheet-cluster`
-- `ECS_SERVICE_API` = `timesheet-api-svc`
-- `ECS_SERVICE_CLIENT` = `timesheet-client-svc`
-- `NEXT_PUBLIC_API_URL` = `https://api.simpletimesheet.app`
-
-## 14. First push & validation
-
-1. Push to `production`. Watch Actions → `Deploy` run through `migrate` → `build-push-api`/`build-push-client` → `deploy-api`/`deploy-client`.
-2. In ECS, confirm both services reach steady state with healthy targets in their target groups.
+1. Push to `production`. Watch Actions → `Deploy` run the SSH step: `git pull`, `npm ci`/`migrate:up`/`build` for both apps, then `pm2 reload`.
+2. `ssh` in and run `pm2 status` — both `timesheet-api` and `timesheet-client` should show `online`. `pm2 logs` to tail output if something's wrong.
 3. Visit `https://simpletimesheet.app` (client should load) and `https://api.simpletimesheet.app/health` (should return `{"status":"ok"}`) — both over valid HTTPS.
-4. Log in through the client and exercise a file-upload/invoice flow to confirm the API's S3 task role is working end-to-end.
+4. Log in through the client and exercise a file-upload/invoice flow to confirm the API's S3 instance-role permissions are working end-to-end.
 
 ## Related code changes made for this deployment
 
-- `api/src/config/configuration.ts`, `api/src/database/database.service.ts`, `api/scripts/migrate.ts` — added SSL support (`DATABASE_SSL=true`), required by Neon.
-- `api/src/aws/s3.service.ts` — S3 client now omits explicit credentials when `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` aren't set, so it falls back to the ECS task role in production instead of requiring static keys.
-- `api/src/app.controller.ts` — added a public `GET /health` route (the existing `GET /` sits behind the global JWT guard, which would otherwise fail every ALB health check).
-- `api/Dockerfile`, `client/Dockerfile` — new production multi-stage builds (the old `Dockerfile.dev` files remain for local `docker compose` dev use, unchanged).
-- `client/next.config.mjs` — added `output: 'standalone'` so the production image only needs the minimal Next.js standalone server output.
+- `ecosystem.config.js` (repo root) — pm2 process definitions for `timesheet-api` (`node dist/src/main.js`) and `timesheet-client` (`next start -p 3000`).
+- `deploy/ec2/Caddyfile` — reverse proxy + automatic TLS for both hostnames; symlinked from `/etc/caddy/Caddyfile` on the instance.
+- `.github/workflows/deploy.yml` — replaced the ECR build/push + ECS task-definition rendering with a single SSH step that pulls, rebuilds, and `pm2 reload`s on the instance.
+- `api/package.json` — fixed `start:prod` to point at the actual Nest build output path (`dist/src/main`, matching `nest-cli.json`'s `sourceRoot`).
+- `client/next.config.mjs` — dropped `output: 'standalone'` (a Docker-only optimization; irrelevant now that the client runs via `next start`).
+- `api/src/aws/s3.service.ts` — comment updated to reflect that the fallback credential chain now resolves via the EC2 instance profile rather than an ECS task role (the code itself didn't need to change).
+- Removed: `deploy/ecs/*.json` task definitions, `api/Dockerfile`, `client/Dockerfile` (the production multi-stage builds — `Dockerfile.dev` files are untouched and still used for local `docker compose` dev).
