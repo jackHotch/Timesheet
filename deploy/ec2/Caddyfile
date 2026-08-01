@@ -1,7 +1,0 @@
-simpletimesheet.app {
-	reverse_proxy localhost:3000
-}
-
-api.simpletimesheet.app {
-	reverse_proxy localhost:8080
-}
