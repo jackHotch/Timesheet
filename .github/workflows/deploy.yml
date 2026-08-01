@@ -30,4 +30,4 @@ jobs:
             npm run build
             cd ..
 
-            pm2 reload timesheet
+            pm2 reload timesheet-api timesheet-client
